@@ -1,13 +1,14 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
-import node from '@astrojs/node';
+import netlify from '@astrojs/netlify';
 import react from '@astrojs/react';
 
-// output: 'server' -> las páginas se generan en cada petición (SSR).
-// Es necesario para el login: hay que leer cookies y validar la sesión en el servidor.
+// output: 'server' sigue igual (el login necesita servidor). El adaptador
+// cambia porque ahora corre como funciones de Netlify, no como un servidor
+// Node propio.
 export default defineConfig({
   output: 'server',
-  adapter: node({ mode: 'standalone' }),
+  adapter: netlify(),
   integrations: [react()],
   server: { port: 5173 },
 });
