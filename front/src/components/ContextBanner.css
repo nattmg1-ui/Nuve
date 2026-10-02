@@ -1,0 +1,57 @@
+.context {
+  padding: 8px 0 32px;
+}
+
+.context__inner {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.context__card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  padding: 22px 20px;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.context__card:hover {
+  border-color: var(--color-secondary);
+  box-shadow: 0 8px 24px -16px rgba(43, 35, 32, 0.25);
+}
+
+.context__icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-primary-selected-bg);
+  color: var(--color-accent);
+  margin-bottom: 12px;
+}
+
+.context__titulo {
+  margin: 0 0 6px;
+  font: var(--text-h4);
+  color: var(--color-ink);
+}
+
+.context__texto {
+  margin: 0;
+  font: var(--text-body-sm);
+  color: var(--color-slate);
+}
+
+@media (max-width: 860px) {
+  .context__inner {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .context__inner {
+    grid-template-columns: 1fr;
+  }
+}

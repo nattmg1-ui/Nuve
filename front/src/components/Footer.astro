@@ -1,0 +1,48 @@
+---
+import isotipoReversa from '../assets/logo/nuve_isotipo_reversa.svg';
+import Newsletter from './Newsletter';
+const anio = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div class="footer-brand">
+      <img src={isotipoReversa.src} alt="Nuvé" class="footer-logo" />
+      <p class="footer-wordmark">Nuvé</p>
+      <p class="footer-slogan">Belleza que te ilumina</p>
+      <p>
+        Maquillaje inclusivo para toda la gama de tonos de piel. Encuentra el tuyo entre marcas que ya conoces.
+      </p>
+    </div>
+
+    <nav>
+      <h3 class="footer-heading">Tienda</h3>
+      <ul class="footer-links">
+        <li><a href="/#catalogo">Catálogo</a></li>
+        <li><a href="/carrito">Carrito</a></li>
+        <li><a href="/mi-cuenta">Mis pedidos</a></li>
+      </ul>
+    </nav>
+
+    <nav>
+      <h3 class="footer-heading">Ayuda</h3>
+      <ul class="footer-links">
+        <li><a href="#envios">Envíos y devoluciones</a></li>
+        <li><a href="#contacto">Contacto</a></li>
+        <li><a href="#terminos">Términos y condiciones</a></li>
+        <li><a href="#privacidad">Aviso de privacidad</a></li>
+      </ul>
+    </nav>
+
+    <div class="footer-newsletter">
+      <h3 class="footer-heading">Encuentra tu tono primero que nadie</h3>
+      <p>Te avisamos cuando lancemos un tono o producto nuevo.</p>
+      <Newsletter client:load />
+    </div>
+  </div>
+
+  <div class="container footer-bottom">
+    <p>© {anio} Nuvé. Todos los derechos reservados.</p>
+    <p>Grupo 8C1 · CETI</p>
+  </div>
+</footer>

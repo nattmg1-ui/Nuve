@@ -1,0 +1,60 @@
+---
+import isotipoReversa from '../assets/logo/nuve_isotipo_reversa.svg';
+import CartBadge from './CartBadge';
+
+const usuario = Astro.locals.usuario;
+const rol = usuario?.rol.nombre;
+const primerNombre = usuario?.nombre.split(' ')[0];
+const q = Astro.url.searchParams.get('q') ?? '';
+---
+
+<header class="topbar">
+  <div class="container topbar__inner">
+    <a class="topbar__logo" href="/">
+      <img src={isotipoReversa.src} alt="Nuvé" class="topbar__logo-img" />
+      <span class="topbar__wordmark">
+        Nuvé
+        <span class="topbar__tagline">Maquillaje y belleza</span>
+      </span>
+    </a>
+
+    <nav class="topbar__nav" aria-label="Principal">
+      <a class="topbar__link" href="/#catalogo">Catálogo</a>
+      <a class="topbar__link" href="/#filtro-tonos">Tonos</a>
+      {(rol === 'OPERADOR' || rol === 'ADMIN') && <a class="topbar__link" href="/operador">Operación</a>}
+      {rol === 'ADMIN' && <a class="topbar__link" href="/admin">Administración</a>}
+    </nav>
+
+    <div class="topbar__actions">
+      <form class="topbar__search" action="/" method="get" role="search">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+          <circle cx="10.5" cy="10.5" r="6.5"></circle>
+          <line x1="21" y1="21" x2="15.5" y2="15.5" stroke-linecap="round"></line>
+        </svg>
+        <input type="text" name="q" value={q} placeholder="Encuentra tu tono" aria-label="Buscar productos" />
+      </form>
+
+      {
+        usuario ? (
+          <>
+            <a class="topbar__cuenta" href="/mi-cuenta" title="Mi cuenta">
+              Hola, {primerNombre}
+            </a>
+            <form method="post" action="/api/auth/logout" onsubmit="localStorage.removeItem('nuve_cart')">
+              <button class="topbar__salir" type="submit">Salir</button>
+            </form>
+          </>
+        ) : (
+          <>
+            <a class="topbar__link" href="/login">Iniciar sesión</a>
+            <a class="topbar__registro" href="/registro">Registrarme</a>
+          </>
+        )
+      }
+
+      <a class="topbar__icon-btn" href="/carrito" aria-label="Carrito">
+        <CartBadge client:only="react" />
+      </a>
+    </div>
+  </div>
+</header>

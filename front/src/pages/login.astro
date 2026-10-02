@@ -1,0 +1,24 @@
+---
+import Layout from '../layouts/Layout.astro';
+import '../components/Panel.css';
+
+if (Astro.locals.usuario) return Astro.redirect('/');
+const error = Astro.url.searchParams.get('error');
+const next = Astro.url.searchParams.get('next') ?? '';
+---
+
+<Layout titulo="Iniciar sesión — Nuvé">
+  <div class="auth-card">
+    <h2>Iniciar sesión</h2>
+    {error && <div class="aviso aviso--error" role="alert">{error}</div>}
+    <form class="auth-form" method="post" action="/api/auth/login">
+      <input type="hidden" name="next" value={next} />
+      <label for="correo">Correo</label>
+      <input class="input" id="correo" name="correo" type="email" autocomplete="email" required />
+      <label for="password">Contraseña</label>
+      <input class="input" id="password" name="password" type="password" autocomplete="current-password" required />
+      <button class="btn btn-primary" type="submit">Entrar</button>
+    </form>
+    <p class="auth-alt">¿Aún no tienes cuenta? <a href="/registro">Regístrate</a></p>
+  </div>
+</Layout>

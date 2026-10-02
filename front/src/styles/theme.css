@@ -1,0 +1,399 @@
+/* =====================================================
+   theme.css — Nuvé
+   Versión: 1.0 | Autores: Mery Natalia Dávila González - Scarlett Martinez Lorence - Carlos Uriel Villalobos Ramos| Fecha: 15/09/2026
+   Manual de referencia: Manual de Identidad Digital - Nuvé (v1.0, 08/09/2026)
+
+   Índice:
+   01. Identidad e introducción (secciones 1-2)
+   02. Logotipo (sección 3)
+   03. Color y modo oscuro (secciones 5 y 5.4)
+   04. Tipografía (sección 6)
+   05. Iconografía (sección 7)
+   06. Imágenes y multimedia (sección 8)
+   07. Aplicaciones: componentes (sección 10)
+   08. Accesibilidad (sección 11)
+===================================================== */
+
+/* -----------------------------------------------------
+   01. Identidad e introducción (secciones 1-2)
+   No genera variables ni reglas CSS: define el objetivo, alcance y
+   los 5 principios rectores (Claridad, Inclusión, Confianza, Calidez,
+   Consistencia) que este archivo aplica en cada variable y componente.
+   Nombre oficial: Nuvé (con tilde, mayúscula inicial en texto corrido).
+   Personalidad: cálida y cercana, inclusiva, moderna y directa, confiable.
+----------------------------------------------------- */
+
+:root {
+
+  /* ---------------------------------------------------
+     02. Logotipo (sección 3)
+     El CSS nunca modifica el logo: no se aplican filtros, sombras,
+     gradientes ni se recrea el isotipo con formas CSS.
+     Archivos maestro (SVG), ver tabla 3.2 del manual:
+       - assets/logo/nuve_logotipo_color.svg     -> lockup, fondo claro
+       - assets/logo/nuve_logotipo_reversa.svg   -> lockup, fondo oscuro
+       - assets/logo/nuve_isotipo_color.svg      -> isotipo solo, fondo claro
+       - assets/logo/nuve_isotipo_reversa.svg    -> isotipo solo, fondo oscuro
+       - assets/logo/nuve_icono_ciruela.svg      -> favicon / avatar
+       - assets/logo/nuve_icono_blanco.svg       -> favicon / avatar (reversa)
+     Estas variables solo controlan el ESPACIO alrededor del logo
+     (sección 3.3) y su tamaño mínimo (sección 3.4), nunca su forma o color.
+  --------------------------------------------------- */
+  --logo-protection-space: 8px;    /* área de protección = 1/3 de la altura del isotipo (3.3) */
+  --logo-min-height-screen: 24px;  /* MÍNIMO permitido: isotipo solo, favicon/navegación (3.4) */
+  --logo-min-width-screen: 120px;  /* MÍNIMO permitido: lockup completo en pantalla (3.4) */
+  --logo-header-height: 56px;      /* alto real de exhibición del lockup en el header (>= mínimo de 3.4) */
+  --logo-footer-size: 32px;        /* alto/ancho real del isotipo solo en el footer (>= mínimo de 3.4) */
+
+  /* ---------------------------------------------------
+     03. Color — Paleta principal (sección 5.1)
+  --------------------------------------------------- */
+  --color-primario: #BE846A;       /* Oro Rosa — CTA, enlaces, interactivos destacados */
+  --color-secundario: #C9A26B;     /* Beige Tostado — fondos de sección, botones secundarios */
+  --color-acento: #6E3B4C;         /* Ciruela — encabezados, footer, botones outline */
+  --color-texto: #2B2320;          /* Tinta — texto principal sobre fondos claros */
+  --color-texto-secundario: #6B5F58; /* Pizarra — texto de apoyo, metadatos */
+  --color-borde: #E5DAD1;          /* Línea — bordes de tarjetas, divisores, inputs */
+  --color-fondo: #FBF6F1;          /* Fondo general de la aplicación */
+  --color-superficie: #FFFFFF;     /* Tarjetas, modales, campos de formulario */
+  --color-heading: var(--color-acento); /* color de encabezados; se ajusta en modo oscuro (5.4) para no perder contraste contra Fondo/Superficie */
+
+  /* Colores semánticos (sección 5.2) */
+  --color-success: #55795E;        /* Confirmaciones, pedido realizado, disponibilidad */
+  --color-warning: #C68A3D;        /* Últimas piezas, avisos no bloqueantes */
+  --color-error: #B1473D;          /* Errores de formulario/pago, producto agotado */
+  --color-info: #5E7290;           /* Mensajes neutros, ayuda contextual; también anillo de foco */
+
+  /* Estados interactivos (sección 5.3) — mezclas fijas, nunca a criterio individual */
+  --color-primario-hover: #A7745D;   /* Oro Rosa, mezcla 12% negro */
+  --color-primario-active: #986A55;  /* Oro Rosa, mezcla 20% negro */
+  --color-primario-selected-bg: #F3DED4; /* Oro Rosa Claro — fondo seleccionado, texto en Tinta */
+  --color-primario-disabled: #E2C8BC;    /* Oro Rosa, mezcla 55% blanco */
+  --opacity-disabled: 0.6;
+
+  --color-acento-hover: #613443;     /* Ciruela, mezcla 12% negro */
+  --color-acento-active: #582F3D;    /* Ciruela, mezcla 20% negro */
+
+  --focus-ring-color: var(--color-info); /* anillo de foco 2px, sección 5.3 y 11 */
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+
+  /* ---------------------------------------------------
+     04. Tipografía (sección 6)
+  --------------------------------------------------- */
+  --font-display: "Lora", Georgia, serif;                 /* Títulos, slogans (6.1) */
+  --font-principal: "Poppins", "Segoe UI", system-ui, sans-serif; /* Cuerpo, UI, botones (6.1) */
+  --font-codigo: "JetBrains Mono", Consolas, Menlo, monospace;    /* Panel admin: SKUs, IDs (6.1) */
+
+  /* Pesos (6.1) */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+
+  /* Escala tipográfica (6.2) — tamaño / interlineado */
+  --font-size-display: 40px;
+  --line-height-display: 48px;
+  --font-size-h1: 32px;
+  --line-height-h1: 40px;
+  --font-size-h2: 24px;
+  --line-height-h2: 32px;
+  --font-size-h3: 20px;
+  --line-height-h3: 28px;
+  --font-size-h4: 16px;
+  --line-height-h4: 24px;
+  --font-size-body: 16px;
+  --line-height-body: 24px;
+  --font-size-body-sm: 14px;
+  --line-height-body-sm: 20px;
+  --font-size-caption: 12px;
+  --line-height-caption: 16px;
+  --font-size-label: 12px;
+  --line-height-label: 16px;
+  --letter-spacing-label: 0.04em; /* tracking +4%, solo labels/botones cortos (6.2) */
+
+  /* Reglas (6.3): peso mínimo Regular 400, interlineado mínimo 1.4x, alineación izquierda */
+  --line-height-min: 1.4;
+
+  /* ---------------------------------------------------
+     05. Iconografía (sección 7)
+     Familia oficial: Phosphor Icons (MIT). Peso Regular por defecto;
+     Fill reservado para estados activos/seleccionados (7.1).
+  --------------------------------------------------- */
+  --icon-size-sm: 16px;
+  --icon-size-base: 20px;
+  --icon-size-md: 24px;
+  --icon-size-lg: 32px;
+  --icon-weight: 1.5px;             /* trazo Regular sobre grilla de 24px (7.1) */
+  --icon-color-default: var(--color-texto);   /* reposo: Tinta (7.3) */
+  --icon-color-active: var(--color-primario); /* activo/seleccionado: Oro Rosa (7.3) */
+
+  /* ---------------------------------------------------
+     06. Imágenes y multimedia (sección 8)
+  --------------------------------------------------- */
+  --radius-card: 20px;              /* tarjetas de producto: radio 16-24px (8, 10.1); punto medio */
+  --radius-card-min: 16px;
+  --radius-card-max: 24px;
+  --radius-button-pill: 999px;      /* botón principal, esquinas totalmente redondeadas (10.1) */
+  --radius-mobile-app: 20px;        /* futura app nativa (10.2) */
+
+  --illustration-stroke: 2px;       /* trazo simple en Ciruela, sin relleno (8.2) */
+  --illustration-stroke-color: var(--color-acento);
+  --illustration-accent-color: var(--color-primario); /* un único punto de acento máximo (8.2) */
+
+  --aspect-video-web: 16 / 9;       /* formato video web (8.3) */
+  --aspect-video-social: 9 / 16;    /* formato video redes sociales (8.3) */
+
+  --transition-duration: 300ms;     /* transiciones suaves, máximo 300ms (8.3, 11.4) */
+  --transition-timing: ease;
+
+  /* ---------------------------------------------------
+     07. Aplicaciones digitales — layout (sección 10)
+  --------------------------------------------------- */
+  --container-max-width: 1200px;    /* contenedor centrado desde breakpoint 1280px (10.3) */
+  --breakpoint-desktop: 1280px;
+
+  /* ---------------------------------------------------
+     08. Accesibilidad (sección 11)
+     Contraste verificado contra la tabla 11.1 del manual (WCAG 2.1 AA).
+     Combinaciones aprobadas: Tinta/Fondo (14.34:1), Tinta/Superficie (15.40:1),
+     Blanco/Ciruela (8.78:1), Tinta/Oro Rosa (4.91:1, texto normal),
+     Blanco/Oro Rosa (3.14:1, solo texto grande >=19px seminegrita).
+     Blanco/Beige Tostado (2.37:1) NO cumple: nunca combinar.
+  --------------------------------------------------- */
+  --a11y-min-body-size: 16px;       /* nunca menor; 14px como piso solo en metadatos (11.2) */
+  --a11y-min-line-height: 1.4;
+}
+
+/* -----------------------------------------------------
+   03b. Modo oscuro (sección 5.4)
+   El modo oscuro es opcional y no forma parte del lanzamiento; estas
+   reglas quedan preparadas para cuando se habilite en una fase futura.
+   Cada color conserva su significado semántico entre modos.
+   El cambio de modo lo controla el sistema operativo del usuario,
+   nunca una lógica propia de la aplicación (horario, etc.).
+----------------------------------------------------- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-fondo: #4F2835;        /* Ciruela Oscuro (equivalencia de tokens, 5.4) */
+    --color-superficie: #6E3B4C;   /* Ciruela */
+    --color-texto: #FBF6F1;
+    --color-borde: color-mix(in srgb, #6E3B4C 80%, white 20%); /* Ciruela + 20% blanco */
+    /* Oro Rosa (--color-primario) no cambia entre modos, según tabla 5.4 */
+    --color-heading: #FBF6F1;      /* Ciruela ya no sirve: se confunde con Fondo/Superficie oscuros;
+                                       se usa el mismo valor que Tinta para mantener contraste AA */
+    --color-texto-secundario: color-mix(in srgb, #FBF6F1 70%, transparent); /* Pizarra pierde contraste en oscuro; se aclara para precios/metadatos */
+  }
+}
+
+/* -----------------------------------------------------
+   08b. Accesibilidad — foco visible (sección 11, 5.3)
+   Anillo de foco de 2px en color Información con offset de 2px,
+   igual para todo elemento interactivo del sistema.
+----------------------------------------------------- */
+:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* -----------------------------------------------------
+   08c. Accesibilidad — movimiento reducido (sección 11.4)
+   Se respeta la preferencia del sistema operativo, desactivando
+   transiciones no esenciales. No hay parpadeo ni autoplay con sonido
+   en ningún componente de este sistema.
+----------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* =====================================================
+   07. Componentes de aplicación (sección 10)
+   Construidos únicamente con las variables anteriores.
+===================================================== */
+
+body {
+  margin: 0;
+  background-color: var(--color-fondo);
+  color: var(--color-texto);
+  font-family: var(--font-principal);
+  font-weight: var(--font-weight-regular);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-min);
+  text-align: left; /* nunca texto justificado (6.3) */
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  color: var(--color-heading);
+  margin: 0;
+}
+
+h1 { font-size: var(--font-size-h1); line-height: var(--line-height-h1); font-weight: var(--font-weight-semibold); }
+h2 { font-size: var(--font-size-h2); line-height: var(--line-height-h2); font-weight: var(--font-weight-medium); }
+
+.display {
+  font-family: var(--font-display);
+  font-size: var(--font-size-display);
+  line-height: var(--line-height-display);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-heading);
+}
+
+h3, .h3-like {
+  font-family: var(--font-principal);
+  font-size: var(--font-size-h3);
+  line-height: var(--line-height-h3);
+  font-weight: var(--font-weight-semibold);
+}
+
+.label {
+  font-family: var(--font-principal);
+  font-size: var(--font-size-label);
+  line-height: var(--line-height-label);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-label);
+  text-transform: uppercase; /* mayúsculas sostenidas solo en labels cortos (6.3) */
+}
+
+.text-secondary {
+  color: var(--color-texto-secundario);
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-body-sm);
+}
+
+.code {
+  font-family: var(--font-codigo);
+  font-weight: var(--font-weight-regular);
+}
+
+/* --- Encabezado (sección 10.1): Ciruela con lockup reverso --- */
+.header {
+  background-color: var(--color-acento);
+  color: var(--color-superficie);
+  display: flex;
+  align-items: center;
+  padding: var(--logo-protection-space) 24px;
+}
+
+.header .logo {
+  height: var(--logo-header-height);
+  width: auto; /* mantiene proporción del isotipo, nunca se deforma (4.2) */
+  padding: var(--logo-protection-space); /* respeta el área de protección del isotipo (3.3) */
+}
+
+/* Isotipo solo, usado en footer/avatar (tabla 3.2) */
+.footer-logo {
+  width: var(--logo-footer-size);
+  height: var(--logo-footer-size);
+  min-width: 0;
+}
+
+/* --- Hero (sección 10.1): Beige Tostado con titular en Lora --- */
+.hero {
+  background-color: var(--color-secundario);
+  padding: 48px 24px;
+}
+
+/* --- Botones (sección 10.1) --- */
+.btn {
+  font-family: var(--font-principal);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-body);
+  border: none;
+  cursor: pointer;
+  padding: 12px 24px;
+  transition: background-color var(--transition-duration) var(--transition-timing);
+}
+
+.btn-primary {
+  background-color: var(--color-primario);
+  color: var(--color-texto); /* contraste 4.91:1, cumple AA texto normal (11.1) */
+  border-radius: var(--radius-button-pill);
+}
+.btn-primary:hover { background-color: var(--color-primario-hover); }
+.btn-primary:active { background-color: var(--color-primario-active); }
+.btn-primary:disabled {
+  background-color: var(--color-primario-disabled);
+  opacity: var(--opacity-disabled);
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: var(--color-heading);
+  border: 2px solid var(--color-heading); /* outline Ciruela en claro; se ajusta en oscuro (5.4) */
+  border-radius: var(--radius-button-pill);
+}
+.btn-secondary:hover { background-color: var(--color-heading); color: var(--color-superficie); }
+
+/* --- Tarjeta de producto (sección 10.1) --- */
+.card {
+  background-color: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radius-card);
+  padding: 16px;
+}
+
+.card img {
+  border-radius: var(--radius-card-min);
+  width: 100%;
+  aspect-ratio: var(--aspect-video-web);
+  object-fit: cover;
+}
+
+/* --- Input (implícito en 10.1: campos de formulario en Superficie) --- */
+.input {
+  background-color: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radius-card-min);
+  color: var(--color-texto);
+  font-family: var(--font-principal);
+  font-size: var(--font-size-body);
+  padding: 10px 14px;
+}
+.input::placeholder { color: var(--color-texto-secundario); }
+
+/* --- Estado seleccionado / etiquetas semánticas (sección 5.3, 11.3) ---
+   La disponibilidad y los estados nunca se comunican solo con color:
+   siempre van acompañados de ícono y texto (11.3). */
+.tag-selected {
+  background-color: var(--color-primario-selected-bg);
+  color: var(--color-texto);
+  border-radius: var(--radius-card-min);
+  padding: 4px 10px;
+}
+
+.tag-success { color: var(--color-success); }
+.tag-warning { color: var(--color-warning); }
+.tag-error { color: var(--color-error); }
+.tag-info { color: var(--color-info); }
+
+/* --- Icono (sección 7) --- */
+.icon {
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+  stroke-width: var(--icon-weight);
+  color: var(--icon-color-default);
+}
+.icon.is-active { color: var(--icon-color-active); }
+
+/* --- Ilustración de estado vacío/error (sección 8.2) --- */
+.illustration {
+  stroke: var(--illustration-stroke-color);
+  stroke-width: var(--illustration-stroke);
+  fill: none;
+  background-color: var(--color-secundario); /* Beige o Fondo únicamente, nunca Ciruela sólido */
+}
+
+/* -----------------------------------------------------
+   09. Fuera de alcance de este archivo (documentado, no CSS)
+   - Voz y tono (sección 9): reglas de copy, se demuestran en el texto
+     de ejemplo.html, no generan propiedades CSS.
+   - Subtítulos de video (sección 8.3): requisito de accesibilidad de
+     contenido/producción audiovisual, no una propiedad CSS aplicable.
+   - Gobernanza (sección 13): versionado y responsables, documentado
+     únicamente en la cabecera de este archivo.
+----------------------------------------------------- */

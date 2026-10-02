@@ -1,0 +1,11 @@
+/* front/src/pages/Home.css */
+.home-body {
+  display: flex;
+  gap: 32px;
+  padding-block: 24px;
+}
+
+.home-content {
+  flex: 1;
+  min-width: 0;
+}

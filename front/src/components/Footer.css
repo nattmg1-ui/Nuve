@@ -1,0 +1,116 @@
+.site-footer {
+  background: var(--color-accent);
+  color: var(--color-surface); /* Blanco sobre Ciruela = 8.78:1, cumple AA (manual 11.1) */
+  margin-top: 48px;
+  padding-block: 48px 24px;
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr 1.4fr;
+  gap: 32px;
+}
+
+@media (max-width: 720px) {
+  .footer-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.footer-brand p {
+  font: var(--text-body-sm);
+  color: var(--color-line);
+  margin: 8px 0 0;
+  max-width: 32ch;
+}
+
+.footer-wordmark {
+  font: var(--text-h2);
+  color: var(--color-surface);
+  margin: 0;
+}
+
+.footer-slogan {
+  font: italic 500 16px/24px var(--font-display);
+  color: var(--color-secondary);
+  margin: 4px 0 0;
+}
+
+.footer-heading {
+  font: var(--text-label);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-secondary);
+  margin: 0 0 12px;
+}
+
+.footer-links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.footer-links a {
+  font: var(--text-body-sm);
+  color: var(--color-surface);
+  text-decoration: none;
+}
+
+.footer-links a:hover {
+  color: var(--color-secondary);
+}
+
+.footer-newsletter p {
+  font: var(--text-body-sm);
+  color: var(--color-line);
+  margin: 0 0 12px;
+}
+
+.footer-newsletter-form {
+  display: flex;
+  gap: 8px;
+}
+
+.footer-newsletter-input {
+  flex: 1;
+  border: 1px solid var(--color-secondary);
+  background: transparent;
+  color: var(--color-surface);
+  border-radius: var(--radius-pill);
+  padding: 10px 16px;
+  font: var(--text-body-sm);
+}
+
+.footer-newsletter-input::placeholder {
+  color: var(--color-line);
+}
+
+.footer-newsletter-input:focus-visible {
+  outline: 2px solid var(--color-info);
+  outline-offset: 2px;
+}
+
+.footer-newsletter-confirm {
+  font: var(--text-body-sm);
+  color: var(--color-success);
+  margin: 0;
+}
+
+.footer-bottom {
+  border-top: 1px solid var(--color-accent-hover);
+  margin-top: 40px;
+  padding-top: 16px;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.footer-bottom p {
+  font: var(--text-caption);
+  color: var(--color-line);
+  margin: 0;
+}

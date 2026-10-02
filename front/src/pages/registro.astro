@@ -1,0 +1,24 @@
+---
+import Layout from '../layouts/Layout.astro';
+import '../components/Panel.css';
+
+if (Astro.locals.usuario) return Astro.redirect('/');
+const error = Astro.url.searchParams.get('error');
+---
+
+<Layout titulo="Crear cuenta — Nuvé">
+  <div class="auth-card">
+    <h2>Crear cuenta</h2>
+    {error && <div class="aviso aviso--error" role="alert">{error}</div>}
+    <form class="auth-form" method="post" action="/api/auth/register">
+      <label for="nombre">Nombre</label>
+      <input class="input" id="nombre" name="nombre" type="text" autocomplete="name" required />
+      <label for="correo">Correo</label>
+      <input class="input" id="correo" name="correo" type="email" autocomplete="email" required />
+      <label for="password">Contraseña (mínimo 8 caracteres)</label>
+      <input class="input" id="password" name="password" type="password" autocomplete="new-password" minlength="8" required />
+      <button class="btn btn-primary" type="submit">Registrarme</button>
+    </form>
+    <p class="auth-alt">¿Ya tienes cuenta? <a href="/login">Inicia sesión</a></p>
+  </div>
+</Layout>

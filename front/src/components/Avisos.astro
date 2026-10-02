@@ -1,0 +1,7 @@
+---
+const ok = Astro.url.searchParams.get('ok');
+const error = Astro.url.searchParams.get('error');
+---
+
+{ok && <div class="aviso aviso--ok" role="status">{ok}</div>}
+{error && <div class="aviso aviso--error" role="alert">{error}</div>}

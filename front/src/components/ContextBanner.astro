@@ -1,0 +1,35 @@
+---
+import './ContextBanner.css';
+
+const items = [
+  { icon: 'truck', titulo: 'Envío en 24–48 horas', texto: 'A toda la república, con seguimiento en tiempo real.' },
+  { icon: 'leaf', titulo: 'Fórmulas veganas', texto: 'Cruelty-free: ningún producto se prueba en animales.' },
+  { icon: 'refresh', titulo: 'Devoluciones sin preguntas', texto: 'Tienes 30 días para cambiar de opinión.' },
+  { icon: 'drop', titulo: 'Un tono para cada piel', texto: 'Más de 40 variantes de tono por línea de producto.' },
+];
+
+const iconos: Record<string, string> = {
+  truck: 'M2 6.5h11v9H2v-9Zm11 3h4.2l2.8 3v3h-7v-6Z M6 18.2a1.7 1.7 0 1 0 0-3.4 1.7 1.7 0 0 0 0 3.4Zm10.5 0a1.7 1.7 0 1 0 0-3.4 1.7 1.7 0 0 0 0 3.4Z',
+  leaf: 'M4 20c0-7.5 5.5-14 14-14 0 7.5-5.5 14-14 14Zm0 0c2-3 4.5-5.4 8-7.2',
+  refresh: 'M4 12a8 8 0 0 1 13.7-5.6M20 12a8 8 0 0 1-13.7 5.6M17 4v4h-4M7 20v-4h4',
+  drop: 'M12 3.5c3.5 4.3 6 7.9 6 11a6 6 0 1 1-12 0c0-3.1 2.5-6.7 6-11Z',
+};
+---
+
+<section class="context" aria-label="Por qué comprar en Nuvé">
+  <div class="context__inner">
+    {
+      items.map((item) => (
+        <article class="context__card">
+          <span class="context__icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d={iconos[item.icon]} />
+            </svg>
+          </span>
+          <h3 class="context__titulo">{item.titulo}</h3>
+          <p class="context__texto">{item.texto}</p>
+        </article>
+      ))
+    }
+  </div>
+</section>

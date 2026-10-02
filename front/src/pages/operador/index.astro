@@ -1,0 +1,114 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Avisos from '../../components/Avisos.astro';
+import '../../components/Panel.css';
+import { gql } from '../../lib/graphql';
+
+const ESTADOS = ['PENDIENTE', 'PAGADO', 'ENVIADO', 'ENTREGADO', 'CANCELADO'];
+
+interface Pedido {
+  id: string;
+  fecha: string;
+  total: number;
+  estado: string;
+  usuario: { nombre: string };
+  detalles: { cantidad: number; variante: { tono: string | null; producto: { nombre: string } } }[];
+}
+interface Variante {
+  id: string;
+  tono: string | null;
+  sku: string;
+  producto: { nombre: string };
+  inventario: { id: string; cantidad: number } | null;
+}
+
+let pedidos: Pedido[] = [];
+let variantes: Variante[] = [];
+let error: string | null = null;
+try {
+  const token = Astro.locals.accessToken;
+  pedidos = (
+    await gql<{ pedidos: Pedido[] }>(
+      `query { pedidos { id fecha total estado usuario { nombre } detalles { cantidad variante { tono producto { nombre } } } } }`,
+      {},
+      token
+    )
+  ).pedidos;
+  variantes = (
+    await gql<{ variantesProducto: Variante[] }>(
+      `query { variantesProducto { id tono sku producto { nombre } inventario { id cantidad } } }`
+    )
+  ).variantesProducto;
+} catch (e) {
+  error = e instanceof Error ? e.message : 'Error desconocido';
+}
+---
+
+<Layout titulo="Operación — Nuvé">
+  <h2 class="panel-titulo">Operación</h2>
+  <p class="panel-intro">Gestiona el estado de los pedidos y el inventario.</p>
+  <Avisos />
+  {error && <div class="aviso aviso--error" role="alert">{error}</div>}
+
+  <h3 class="panel-subtitulo" id="pedidos">Pedidos</h3>
+  <div class="panel-tabla-wrap">
+    <table class="panel-tabla">
+      <thead>
+        <tr><th>Pedido</th><th>Cliente</th><th>Fecha</th><th>Productos</th><th>Total</th><th>Estado</th></tr>
+      </thead>
+      <tbody>
+        {
+          pedidos.map((p) => (
+            <tr>
+              <td>#{p.id}</td>
+              <td>{p.usuario.nombre}</td>
+              <td>{p.fecha}</td>
+              <td>
+                {p.detalles.map((d) => (
+                  <div>{d.cantidad} × {d.variante.producto.nombre}{d.variante.tono ? ` (${d.variante.tono})` : ''}</div>
+                ))}
+              </td>
+              <td>${p.total.toFixed(2)}</td>
+              <td>
+                <form class="panel-inline" method="post" action="/api/operador/pedido-estado">
+                  <input type="hidden" name="pedidoId" value={p.id} />
+                  <select class="input" name="estado" aria-label={`Estado del pedido ${p.id}`}>
+                    {ESTADOS.map((e) => <option value={e} selected={e === p.estado}>{e}</option>)}
+                  </select>
+                  <button class="btn btn-primary btn-sm" type="submit">Guardar</button>
+                </form>
+              </td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <h3 class="panel-subtitulo" id="inventario">Inventario</h3>
+  <div class="panel-tabla-wrap">
+    <table class="panel-tabla">
+      <thead>
+        <tr><th>Producto</th><th>Tono</th><th>SKU</th><th>Existencias</th></tr>
+      </thead>
+      <tbody>
+        {
+          variantes.filter((v) => v.inventario).map((v) => (
+            <tr>
+              <td>{v.producto.nombre}</td>
+              <td>{v.tono ?? '—'}</td>
+              <td>{v.sku}</td>
+              <td>
+                <form class="panel-inline" method="post" action="/api/operador/inventario">
+                  <input type="hidden" name="inventarioId" value={v.inventario!.id} />
+                  <input class="input" type="number" name="cantidad" min="0" value={v.inventario!.cantidad} style="width: 90px;" aria-label={`Existencias de ${v.sku}`} />
+                  <button class="btn btn-primary btn-sm" type="submit">Guardar</button>
+                </form>
+              </td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+</Layout>

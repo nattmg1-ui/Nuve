@@ -1,0 +1,77 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Avisos from '../components/Avisos.astro';
+import '../components/Panel.css';
+import { gql } from '../lib/graphql';
+
+interface Pedido {
+  id: string;
+  fecha: string;
+  total: number;
+  estado: string;
+  detalles: { cantidad: number; subtotal: number; variante: { tono: string | null; producto: { nombre: string } } }[];
+}
+
+const usuario = Astro.locals.usuario!;
+let pedidos: Pedido[] = [];
+let error: string | null = null;
+try {
+  pedidos = (
+    await gql<{ pedidos: Pedido[] }>(
+      `query { pedidos { id fecha total estado detalles { cantidad subtotal variante { tono producto { nombre } } } } }`,
+      {},
+      Astro.locals.accessToken
+    )
+  ).pedidos;
+} catch (e) {
+  error = e instanceof Error ? e.message : 'Error desconocido';
+}
+---
+
+<Layout titulo="Mi cuenta — Nuvé">
+  <h2 class="panel-titulo">Mi cuenta</h2>
+  <p class="panel-intro">
+    {usuario.nombre} · {usuario.correo} · <span class="etiqueta">{usuario.rol.nombre}</span>
+  </p>
+
+  <Avisos />
+  {error && <div class="aviso aviso--error" role="alert">{error}</div>}
+
+  <h3 class="panel-subtitulo">Mis pedidos</h3>
+  {pedidos.length === 0 && !error && <p class="panel-intro">Aún no tienes pedidos. <a href="/">Ir al catálogo</a></p>}
+
+  {
+    pedidos.length > 0 && (
+      <div class="panel-tabla-wrap">
+        <table class="panel-tabla">
+          <thead>
+            <tr><th>Pedido</th><th>Fecha</th><th>Productos</th><th>Total</th><th>Estado</th><th></th></tr>
+          </thead>
+          <tbody>
+            {pedidos.map((p) => (
+              <tr>
+                <td>#{p.id}</td>
+                <td>{p.fecha}</td>
+                <td>
+                  {p.detalles.map((d) => (
+                    <div>{d.cantidad} × {d.variante.producto.nombre}{d.variante.tono ? ` (${d.variante.tono})` : ''}</div>
+                  ))}
+                </td>
+                <td>${p.total.toFixed(2)}</td>
+                <td><span class="etiqueta">{p.estado}</span></td>
+                <td>
+                  {p.estado === 'PENDIENTE' && (
+                    <form method="post" action="/api/pedido/cancelar">
+                      <input type="hidden" name="pedidoId" value={p.id} />
+                      <button class="btn btn-secondary btn-sm" type="submit">Cancelar</button>
+                    </form>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+</Layout>

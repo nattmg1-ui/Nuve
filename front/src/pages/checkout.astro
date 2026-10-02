@@ -1,0 +1,25 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Checkout from '../components/Checkout';
+import { gql } from '../lib/graphql';
+
+// El middleware ya garantiza que hay sesión (si no, redirige a /login).
+let direcciones: { id: string; calle: string; numero: string | null; colonia: string | null; ciudad: string; estado: string; codigoPostal: string | null }[] = [];
+let error: string | null = null;
+try {
+  direcciones = (
+    await gql<{ direcciones: typeof direcciones }>(
+      `query { direcciones { id calle numero colonia ciudad estado codigoPostal } }`,
+      {},
+      Astro.locals.accessToken
+    )
+  ).direcciones;
+} catch (e) {
+  error = e instanceof Error ? e.message : 'Error desconocido';
+}
+---
+
+<Layout titulo="Confirmar pedido — Nuvé">
+  {error && <div class="main-error" role="alert"><p>{error}</p></div>}
+  {!error && <Checkout client:only="react" direcciones={direcciones} />}
+</Layout>

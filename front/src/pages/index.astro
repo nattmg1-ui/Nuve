@@ -1,0 +1,46 @@
+---
+import Layout from '../layouts/Layout.astro';
+import '../components/Main.css';
+import '../components/Home.css';
+import Hero from '../components/Hero.astro';
+import ContextBanner from '../components/ContextBanner.astro';
+import Catalogo from '../components/Catalogo';
+import { gql } from '../lib/graphql';
+import type { ProductoCatalogo } from '../lib/types';
+
+const QUERY = `
+  query Inicio {
+    categorias { id nombre }
+    productos {
+      id nombre
+      marca { nombre }
+      variantes { id tono codigoHex precio sku }
+      imagenes { urlImagen principal }
+    }
+  }`;
+
+let datos: { categorias: { id: string; nombre: string }[]; productos: ProductoCatalogo[] } | null = null;
+let error: string | null = null;
+try {
+  datos = await gql(QUERY);
+} catch (e) {
+  error = e instanceof Error ? e.message : 'Error desconocido';
+}
+
+const busqueda = Astro.url.searchParams.get('q') ?? '';
+---
+
+<Layout>
+  {
+    error || !datos ? (
+      <div class="main-error" role="alert">
+        <p>No pudimos cargar el catálogo. {error}</p>
+      </div>
+    ) : (
+      <Catalogo client:load categorias={datos.categorias} productos={datos.productos} busqueda={busqueda}>
+        <Hero slot="hero" />
+        <ContextBanner slot="contexto" />
+      </Catalogo>
+    )
+  }
+</Layout>

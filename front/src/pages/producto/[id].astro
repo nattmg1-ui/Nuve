@@ -1,0 +1,32 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import ProductoDetalle from '../../components/ProductoDetalle';
+import '../../components/Main.css';
+import '../../components/DetalleProducto.css';
+import { gql } from '../../lib/graphql';
+
+const QUERY = `
+  query Producto($id: ID!) {
+    producto(id: $id) {
+      id nombre descripcion
+      marca { nombre }
+      categoria { nombre }
+      variantes { id tono codigoHex precio sku }
+      imagenes { urlImagen principal }
+    }
+  }`;
+
+let producto = null;
+let error: string | null = null;
+try {
+  producto = (await gql<{ producto: any }>(QUERY, { id: Astro.params.id })).producto;
+} catch (e) {
+  error = e instanceof Error ? e.message : 'Error desconocido';
+}
+if (!error && !producto) return new Response('Producto no encontrado', { status: 404 });
+---
+
+<Layout titulo={`${producto?.nombre ?? 'Producto'} — Nuvé`}>
+  {error && <div class="main-error" role="alert"><p>No pudimos cargar el producto. {error}</p></div>}
+  {producto && <ProductoDetalle client:load producto={producto} />}
+</Layout>

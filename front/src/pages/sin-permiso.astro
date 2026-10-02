@@ -1,0 +1,13 @@
+---
+import Layout from '../layouts/Layout.astro';
+import '../components/Panel.css';
+Astro.response.status = 403;
+---
+
+<Layout titulo="Sin permiso — Nuvé">
+  <div class="auth-card">
+    <h2>Sin permiso</h2>
+    <p>Tu cuenta no tiene acceso a esta sección.</p>
+    <p class="auth-alt"><a href="/">Volver al inicio</a></p>
+  </div>
+</Layout>

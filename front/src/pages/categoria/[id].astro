@@ -1,0 +1,70 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import '../../components/Main.css';
+import { gql } from '../../lib/graphql';
+
+interface Categoria {
+  id: string;
+  nombre: string;
+  productos: {
+    id: string;
+    nombre: string;
+    marca: { nombre: string };
+    variantes: { precio: number }[];
+    imagenes: { urlImagen: string; principal: boolean }[];
+  }[];
+}
+
+const QUERY = `
+  query Categoria($id: ID!) {
+    categoria(id: $id) {
+      id nombre
+      productos {
+        id nombre
+        marca { nombre }
+        variantes { precio }
+        imagenes { urlImagen principal }
+      }
+    }
+  }`;
+
+let categoria: Categoria | null = null;
+let error: string | null = null;
+try {
+  categoria = (await gql<{ categoria: Categoria | null }>(QUERY, { id: Astro.params.id })).categoria;
+} catch (e) {
+  error = e instanceof Error ? e.message : 'Error desconocido';
+}
+if (!error && !categoria) return new Response('Categoría no encontrada', { status: 404 });
+---
+
+<Layout titulo={`${categoria?.nombre ?? 'Categoría'} — Nuvé`}>
+  <div class="main-catalogo">
+    <a class="btn btn-secondary" href="/" style="margin-bottom: 16px;">Volver</a>
+
+    {error && <div class="main-error" role="alert"><p>No pudimos cargar la categoría. {error}</p></div>}
+
+    {
+      categoria && (
+        <>
+          <h2 style="font: var(--text-h2); margin-bottom: 20px;">{categoria.nombre}</h2>
+          <div class="main-grid">
+            {categoria.productos.map((producto) => {
+              const imagen = producto.imagenes.find((i) => i.principal) ?? producto.imagenes[0];
+              const desde = Math.min(...producto.variantes.map((v) => v.precio));
+              return (
+                <article class="producto-card">
+                  {imagen && <img src={imagen.urlImagen} alt={producto.nombre} class="producto-img" />}
+                  <p class="producto-marca">{producto.marca.nombre}</p>
+                  <h3 class="producto-nombre">{producto.nombre}</h3>
+                  <p class="producto-precio">Desde ${desde.toFixed(2)}</p>
+                  <a class="btn btn-primary" href={`/producto/${producto.id}`}>Ver producto</a>
+                </article>
+              );
+            })}
+          </div>
+        </>
+      )
+    }
+  </div>
+</Layout>

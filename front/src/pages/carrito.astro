@@ -1,0 +1,8 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Carrito from '../components/Carrito';
+---
+
+<Layout titulo="Tu carrito — Nuvé">
+  <Carrito client:only="react" />
+</Layout>
