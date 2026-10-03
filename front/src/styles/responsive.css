@@ -1,5 +1,6 @@
 /* front/src/styles/responsive.css
-   Ajustes para tablet y celular. Se carga al final (Layout.astro).
+   Ajustes para tablet y celular del resto de las páginas.
+   (El TopBar tiene su propio responsive mobile-first en TopBar.css.)
    Los selectores llevan "body" delante para ganar especificidad sin importar
    el orden en que Astro junte los CSS de cada componente. */
 
@@ -12,48 +13,6 @@ img {
 @media (max-width: 860px) {
   body .container {
     padding-inline: 16px;
-  }
-
-  /* TopBar: fila 1 = logo + sesión + carrito, fila 2 = buscador, fila 3 = menú */
-  body .topbar {
-    position: static;
-  }
-
-  body .topbar__inner {
-    height: auto;
-    flex-wrap: wrap;
-    gap: 10px 12px;
-    padding-block: 12px;
-  }
-
-  body .topbar__actions {
-    display: contents;
-  }
-
-  body .topbar__logo {
-    order: 1;
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-
-  body .topbar__actions > a,
-  body .topbar__actions > form:not(.topbar__search) {
-    order: 2;
-  }
-
-  body .topbar__search {
-    order: 3;
-    flex: 1 1 100%;
-    width: auto;
-  }
-
-  body .topbar__nav {
-    display: flex;
-    order: 4;
-    flex: 1 1 100%;
-    gap: 20px;
-    overflow-x: auto;
-    white-space: nowrap;
   }
 
   /* Inicio: sidebar arriba, catálogo abajo */
@@ -165,24 +124,6 @@ img {
 
 /* ---------- Celular (hasta 520px) ---------- */
 @media (max-width: 520px) {
-  body .topbar__wordmark {
-    font-size: 1.2rem;
-  }
-
-  body .topbar__tagline {
-    display: none;
-  }
-
-  body .topbar__link,
-  body .topbar__cuenta {
-    font-size: 0.85rem;
-  }
-
-  body .topbar__registro {
-    padding: 6px 12px;
-    font-size: 0.8rem;
-  }
-
   body .hero__art {
     display: none;
   }

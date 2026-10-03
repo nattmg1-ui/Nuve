@@ -1,34 +1,36 @@
+/* front/src/components/TopBar.css
+   Mobile first (como el tutorial de Astro): los estilos base son para celular
+   y el bloque @media (min-width: 861px) agrega los de escritorio. */
+
+/* ---------- Base (celular) ---------- */
+
 .topbar {
-  position: sticky;
-  top: 0;
-  z-index: 20;
   background: var(--color-accent);
   color: #fff;
 }
 
 .topbar__inner {
-  height: 76px;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 40px;
-}
-
-.topbar__logo-img {
-  height: 32px;
-  width: auto;
-  flex-shrink: 0;
+  gap: 12px;
+  padding-block: 12px;
 }
 
 .topbar__logo {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
   color: #fff;
+  text-decoration: none;
+}
+
+.topbar__logo-img {
+  height: 32px;
+  width: auto;
   flex-shrink: 0;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
 }
 
 .topbar__wordmark {
@@ -38,11 +40,12 @@
   font-family: var(--font-display);
   font-style: italic;
   font-weight: 500;
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   text-align: left;
 }
 
 .topbar__tagline {
+  display: none;
   font-family: var(--font-body);
   font-style: normal;
   font-weight: 600;
@@ -52,45 +55,82 @@
   color: var(--color-secondary);
 }
 
+/* Carrito + hamburguesa: siempre visibles en celular */
+.topbar__fijas {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.hamburger {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 40px;
+  height: 40px;
+  padding: 0 9px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.hamburger:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.hamburger .line {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: #fff;
+  border-radius: 2px;
+}
+
+/* Menú desplegable: oculto hasta que el script agrega "expanded" */
+.topbar__menu {
+  display: none;
+  flex-basis: 100%;
+  flex-direction: column;
+  gap: 14px;
+  padding: 12px 0 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.topbar__menu.expanded {
+  display: flex;
+}
+
 .topbar__nav {
   display: flex;
-  gap: 28px;
-  flex: 1;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .topbar__link {
-  font-size: 0.92rem;
+  font-size: 0.95rem;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.85);
-  position: relative;
-  padding: 6px 0;
+  text-decoration: none;
+  padding: 8px 0;
   transition: color 0.15s ease;
-  background: none;
-  border: none;
-  cursor: pointer;
 }
 
 .topbar__link:hover {
   color: #fff;
 }
 
-.topbar__actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-}
-
 .topbar__search {
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 100%;
   background: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: var(--radius-pill);
   padding: 8px 16px;
   color: rgba(255, 255, 255, 0.75);
-  width: 220px;
   transition: border-color 0.15s ease, background 0.15s ease;
 }
 
@@ -113,60 +153,11 @@
   color: rgba(255, 255, 255, 0.6);
 }
 
-.topbar__icon-btn {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  border: none;
-  background: transparent;
-  color: #fff;
-  border-radius: 50%;
-  transition: background 0.15s ease, color 0.15s ease;
-}
-
-.topbar__icon-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: var(--color-secondary);
-}
-
-.topbar__badge {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
-  border-radius: var(--radius-pill);
-  background: var(--color-primary);
-  color: #fff;
-  font-size: 0.65rem;
-  line-height: 16px;
-  text-align: center;
-  font-weight: 600;
-}
-
-@media (max-width: 860px) {
-  .topbar__nav {
-    display: none;
-  }
-  .topbar__search {
-    width: 140px;
-  }
-}
-
-/* --- Astro: enlaces y sesión --- */
-.topbar__logo {
-  text-decoration: none;
-}
-
-.topbar__link {
-  text-decoration: none;
-}
-
-.topbar__icon-btn {
-  text-decoration: none;
+.topbar__sesion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
 }
 
 .topbar__cuenta {
@@ -212,4 +203,122 @@
 
 .topbar__registro:hover {
   background: var(--color-primary-hover);
+}
+
+.topbar__icon-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  color: #fff;
+  border-radius: 50%;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.topbar__icon-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--color-secondary);
+}
+
+.topbar__badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.65rem;
+  line-height: 16px;
+  text-align: center;
+  font-weight: 600;
+}
+
+/* ---------- Escritorio (861px en adelante) ---------- */
+
+@media screen and (min-width: 861px) {
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+
+  .topbar__inner {
+    flex-wrap: nowrap;
+    height: 76px;
+    gap: 32px;
+    padding-block: 0;
+  }
+
+  .topbar__logo {
+    flex: 0 0 auto;
+  }
+
+  .topbar__wordmark {
+    font-size: 1.4rem;
+  }
+
+  .topbar__tagline {
+    display: block;
+  }
+
+  /* El menú deja de ser desplegable y se acomoda en la fila */
+  .topbar__menu {
+    display: flex;
+    flex: 1 1 auto;
+    flex-basis: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+    padding: 0;
+    border-top: none;
+  }
+
+  .topbar__nav {
+    flex: 1;
+    flex-direction: row;
+    gap: 28px;
+  }
+
+  .topbar__link {
+    font-size: 0.92rem;
+    padding: 6px 0;
+    white-space: nowrap;
+  }
+
+  .topbar__search {
+    width: 220px;
+  }
+
+  .topbar__sesion {
+    flex-wrap: nowrap;
+  }
+
+  /* Carrito al final de la fila; la hamburguesa ya no se necesita */
+  .topbar__fijas {
+    order: 3;
+  }
+
+  .hamburger {
+    display: none;
+  }
+}
+
+/* Pantallas medianas: compacta un poco para que todo quepa */
+@media screen and (min-width: 861px) and (max-width: 1100px) {
+  .topbar__inner {
+    gap: 20px;
+  }
+
+  .topbar__nav {
+    gap: 16px;
+  }
+
+  .topbar__search {
+    width: 160px;
+  }
 }
