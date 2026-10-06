@@ -181,6 +181,8 @@ export const typeDefs = `#graphql
     subtotal: Float!
     total: Float!
     estado: StatusPedido!
+    """Estados a los que puede pasar desde el actual (vacío si ya es final)."""
+    estadosSiguientes: [StatusPedido!]!
     transaccionPagoId: String
     detalles: [DetallePedido!]!
   }

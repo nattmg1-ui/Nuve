@@ -2,16 +2,16 @@
 import Layout from '../../layouts/Layout.astro';
 import Avisos from '../../components/Avisos.astro';
 import VentasChart from '../../components/VentasChart';
+import EstadoPedidoForm from '../../components/EstadoPedidoForm.astro';
 import '../../components/Panel.css';
 import { gql } from '../../lib/graphql';
-
-const ESTADOS = ['PENDIENTE', 'PAGADO', 'ENVIADO', 'ENTREGADO', 'CANCELADO'];
 
 interface Pedido {
   id: string;
   fecha: string;
   total: number;
   estado: string;
+  estadosSiguientes: string[];
   usuario: { nombre: string };
   detalles: { cantidad: number; variante: { tono: string | null; producto: { nombre: string } } }[];
 }
@@ -23,7 +23,7 @@ try {
   const token = Astro.locals.accessToken;
   pedidos = (
     await gql<{ pedidos: Pedido[] }>(
-      `query { pedidos { id fecha total estado usuario { nombre } detalles { cantidad variante { tono producto { nombre } } } } }`,
+      `query { pedidos { id fecha total estado estadosSiguientes usuario { nombre } detalles { cantidad variante { tono producto { nombre } } } } }`,
       {},
       token
     )
@@ -74,13 +74,7 @@ try {
               </td>
               <td>${p.total.toFixed(2)}</td>
               <td>
-                <form class="panel-inline" method="post" action="/api/operador/pedido-estado">
-                  <input type="hidden" name="pedidoId" value={p.id} />
-                  <select class="input" name="estado" aria-label={`Estado del pedido ${p.id}`}>
-                    {ESTADOS.map((e) => <option value={e} selected={e === p.estado}>{e}</option>)}
-                  </select>
-                  <button class="btn btn-primary btn-sm" type="submit">Guardar</button>
-                </form>
+                <EstadoPedidoForm pedidoId={p.id} estado={p.estado} siguientes={p.estadosSiguientes} volver="/admin" />
               </td>
             </tr>
           ))

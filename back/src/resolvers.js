@@ -12,6 +12,8 @@ import { ROLES } from './auth/config.js';
 import { protegerResolvers } from './auth/permisos.js';
 import { sinPermiso, datosInvalidos } from './auth/errores.js';
 import * as authServicio from './auth/servicio.js';
+import { estadosSiguientes, validarTransicion } from './pedidos/estados.js';
+import { validarDireccion } from './direcciones/validacion.js';
 
 const hoy = () => new Date().toISOString().slice(0, 10);
 
@@ -208,7 +210,8 @@ async function restaurarStock(client, pedidoId) {
   );
 }
 
-// Cambia el estado de un pedido; si pasa a CANCELADO devuelve el stock (todo en una transacción).
+// Cambia el estado de un pedido respetando el orden permitido (pedidos/estados.js).
+// Si pasa a CANCELADO devuelve el stock. Todo en una transacción.
 async function cambiarEstadoPedido(pedidoId, nuevoEstado) {
   const client = await pool.connect();
   try {
@@ -218,7 +221,10 @@ async function cambiarEstadoPedido(pedidoId, nuevoEstado) {
       await client.query('ROLLBACK');
       return null;
     }
-    if (nuevoEstado === 'CANCELADO' && previo.rows[0].estado !== 'CANCELADO') {
+    // FOR UPDATE bloquea la fila: si dos personas cambian el mismo pedido a la vez,
+    // la segunda espera y valida contra el estado ya actualizado.
+    validarTransicion(previo.rows[0].estado, nuevoEstado);
+    if (nuevoEstado === 'CANCELADO') {
       await restaurarStock(client, pedidoId);
     }
     const { rows } = await client.query('UPDATE pedido SET estado = $1 WHERE id = $2 RETURNING *', [nuevoEstado, pedidoId]);
@@ -381,6 +387,7 @@ export const resolvers = protegerResolvers({
   },
 
   Pedido: {
+    estadosSiguientes: (pedido) => estadosSiguientes(pedido.estado),
     usuario: (pedido) => findById('usuario', mapUsuario, pedido.usuarioId),
     direccion: (pedido) => findById('direccion', mapDireccion, pedido.direccionId),
     detalles: (pedido) => findWhere('detalle_pedido', mapDetallePedido, 'pedido_id', pedido.id),
@@ -647,26 +654,26 @@ export const resolvers = protegerResolvers({
 
     // --- Direccion ---
     crearDireccion: async (_, { datos }, ctx) => {
+      const d = validarDireccion(datos);
       const { rows } = await query(
         `INSERT INTO direccion (usuario_id, calle, numero, colonia, ciudad, estado, codigo_postal, referencias, latitud, longitud)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
         [
-          usuarioObjetivo(ctx, datos.usuarioId), datos.calle, datos.numero ?? null, datos.colonia ?? null, datos.ciudad,
-          datos.estado, datos.codigoPostal ?? null, datos.referencias ?? null,
-          datos.latitud ?? null, datos.longitud ?? null,
+          usuarioObjetivo(ctx, datos.usuarioId), d.calle, d.numero, d.colonia, d.ciudad,
+          d.estado, d.codigoPostal, d.referencias, d.latitud, d.longitud,
         ]
       );
       return mapDireccion(rows[0]);
     },
     actualizarDireccion: async (_, { id: tid, datos }, ctx) => {
       await asegurarPropio(ctx, 'direccion', tid);
+      const d = validarDireccion(datos);
       const { rows } = await query(
         `UPDATE direccion SET usuario_id = $1, calle = $2, numero = $3, colonia = $4, ciudad = $5,
          estado = $6, codigo_postal = $7, referencias = $8, latitud = $9, longitud = $10 WHERE id = $11 RETURNING *`,
         [
-          usuarioObjetivo(ctx, datos.usuarioId), datos.calle, datos.numero ?? null, datos.colonia ?? null, datos.ciudad,
-          datos.estado, datos.codigoPostal ?? null, datos.referencias ?? null,
-          datos.latitud ?? null, datos.longitud ?? null, tid,
+          usuarioObjetivo(ctx, datos.usuarioId), d.calle, d.numero, d.colonia, d.ciudad,
+          d.estado, d.codigoPostal, d.referencias, d.latitud, d.longitud, tid,
         ]
       );
       return rows[0] ? mapDireccion(rows[0]) : null;

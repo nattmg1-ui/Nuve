@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '@nanostores/react';
 import { $cart, $totalPrecio, vaciarCarrito } from '../lib/cart';
+import { ESTADOS_MX } from '../lib/estadosMx';
 import './Main.css';
 import './Checkout.css';
 import './Panel.css';
@@ -27,6 +28,8 @@ export default function Checkout({ direcciones: iniciales }: { direcciones: Dire
   const [mostrarForm, setMostrarForm] = useState(iniciales.length === 0);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorDireccion, setErrorDireccion] = useState<string | null>(null);
+  const [guardando, setGuardando] = useState(false);
 
   async function llamar(url: string, cuerpo: unknown) {
     const respuesta = await fetch(url, {
@@ -40,7 +43,8 @@ export default function Checkout({ direcciones: iniciales }: { direcciones: Dire
   }
 
   async function guardarDireccion(formulario: HTMLFormElement) {
-    setError(null);
+    setErrorDireccion(null);
+    setGuardando(true);
     const datos = Object.fromEntries(new FormData(formulario).entries());
     try {
       const { direccion } = await llamar('/api/direccion', datos);
@@ -48,7 +52,10 @@ export default function Checkout({ direcciones: iniciales }: { direcciones: Dire
       setDireccionId(direccion.id);
       setMostrarForm(false);
     } catch (err) {
-      setError((err as Error).message);
+      // El backend valida de nuevo y explica qué campo está mal
+      setErrorDireccion((err as Error).message);
+    } finally {
+      setGuardando(false);
     }
   }
 
@@ -121,20 +128,109 @@ export default function Checkout({ direcciones: iniciales }: { direcciones: Dire
 
           {mostrarForm && (
             <form
-              className="panel-form"
+              className="panel-form auth-form"
               onSubmit={(e) => {
                 e.preventDefault();
                 void guardarDireccion(e.currentTarget);
               }}
             >
-              <input className="input" name="calle" placeholder="Calle" required />
-              <input className="input" name="numero" placeholder="Número" />
-              <input className="input" name="colonia" placeholder="Colonia" />
-              <input className="input" name="ciudad" placeholder="Ciudad" required />
-              <input className="input" name="estado" placeholder="Estado" required />
-              <input className="input" name="codigoPostal" placeholder="Código postal" />
-              <button type="submit" className="btn btn-primary">
-                Guardar dirección
+              <label htmlFor="dir-calle">Calle</label>
+              <input
+                className="input"
+                id="dir-calle"
+                name="calle"
+                autoComplete="address-line1"
+                required
+                minLength={3}
+                maxLength={100}
+                placeholder="Av. Vallarta"
+              />
+
+              <label htmlFor="dir-numero">Número exterior</label>
+              <input
+                className="input"
+                id="dir-numero"
+                name="numero"
+                required
+                maxLength={12}
+                pattern="[Ss] ?/ ?[Nn]|[0-9]{1,6} ?[A-Za-z]?(-[0-9A-Za-z]{1,4})?"
+                title="Ejemplos: 123, 45B, 12-A o S/N si no tiene número"
+                placeholder="123, 45B o S/N"
+              />
+
+              <label htmlFor="dir-colonia">Colonia</label>
+              <input
+                className="input"
+                id="dir-colonia"
+                name="colonia"
+                required
+                minLength={2}
+                maxLength={80}
+                placeholder="Americana"
+              />
+
+              <label htmlFor="dir-cp">Código postal</label>
+              <input
+                className="input"
+                id="dir-cp"
+                name="codigoPostal"
+                autoComplete="postal-code"
+                inputMode="numeric"
+                required
+                maxLength={5}
+                pattern="[0-9]{5}"
+                title="5 dígitos, por ejemplo 44160"
+                placeholder="44160"
+                onInput={(e) => {
+                  // Solo deja escribir números
+                  const campo = e.currentTarget;
+                  campo.value = campo.value.replace(/[^0-9]/g, '').slice(0, 5);
+                }}
+              />
+
+              <label htmlFor="dir-ciudad">Ciudad o municipio</label>
+              <input
+                className="input"
+                id="dir-ciudad"
+                name="ciudad"
+                autoComplete="address-level2"
+                required
+                minLength={2}
+                maxLength={60}
+                pattern="[A-Za-zÁÉÍÓÚÜÑáéíóúüñ .'\-]+"
+                title="Solo letras"
+                placeholder="Guadalajara"
+              />
+
+              <label htmlFor="dir-estado">Estado</label>
+              <select className="input" id="dir-estado" name="estado" required defaultValue="">
+                <option value="" disabled>
+                  Elige tu estado
+                </option>
+                {ESTADOS_MX.map((estado) => (
+                  <option key={estado} value={estado}>
+                    {estado}
+                  </option>
+                ))}
+              </select>
+
+              <label htmlFor="dir-referencias">Referencias (opcional)</label>
+              <input
+                className="input"
+                id="dir-referencias"
+                name="referencias"
+                maxLength={150}
+                placeholder="Entre calles, color de la casa, número interior..."
+              />
+
+              {errorDireccion && (
+                <div role="alert" className="aviso aviso--error" style={{ marginBottom: 0 }}>
+                  {errorDireccion}
+                </div>
+              )}
+
+              <button type="submit" className="btn btn-primary" disabled={guardando}>
+                {guardando ? 'Guardando...' : 'Guardar dirección'}
               </button>
             </form>
           )}

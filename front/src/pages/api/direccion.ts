@@ -4,7 +4,7 @@ import { json } from '../../lib/acciones';
 
 const MUTATION = `
   mutation ($datos: DireccionInput!) {
-    crearDireccion(datos: $datos) { id calle numero colonia ciudad estado codigoPostal }
+    crearDireccion(datos: $datos) { id calle numero colonia ciudad estado codigoPostal referencias }
   }`;
 
 export const POST: APIRoute = async ({ request, locals }) => {
@@ -20,6 +20,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     ciudad: texto('ciudad'),
     estado: texto('estado'),
     codigoPostal: texto('codigoPostal'),
+    referencias: texto('referencias'),
   };
   try {
     const r = await gql<{ crearDireccion: unknown }>(MUTATION, { datos }, locals.accessToken);

@@ -1,0 +1,37 @@
+---
+// Celda de "Estado" para las tablas de pedidos (operación y administración).
+// Solo ofrece los estados a los que el pedido puede pasar; si ya es final
+// (ENTREGADO o CANCELADO) muestra el estado sin opción de cambiarlo.
+interface Props {
+  pedidoId: string;
+  estado: string;
+  siguientes: string[];
+  volver: '/operador' | '/admin';
+}
+
+const { pedidoId, estado, siguientes, volver } = Astro.props;
+---
+
+{
+  siguientes.length === 0 ? (
+    <span class="etiqueta" title="Estado final: ya no se puede modificar">
+      {estado} · final
+    </span>
+  ) : (
+    <form
+      class="panel-inline"
+      method="post"
+      action="/api/operador/pedido-estado"
+      onsubmit="const e = this.estado.value; return (e !== 'ENTREGADO' && e !== 'CANCELADO') || confirm('Este cambio es definitivo: después ya no se podrá modificar el pedido. ¿Continuar?')"
+    >
+      <span class="etiqueta">{estado}</span>
+      <input type="hidden" name="pedidoId" value={pedidoId} />
+      <input type="hidden" name="volver" value={volver} />
+      <select class="input" name="estado" required aria-label={`Nuevo estado del pedido ${pedidoId}`}>
+        <option value="" selected disabled>Cambiar a...</option>
+        {siguientes.map((e) => <option value={e}>{e}</option>)}
+      </select>
+      <button class="btn btn-primary btn-sm" type="submit">Guardar</button>
+    </form>
+  )
+}
