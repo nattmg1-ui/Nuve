@@ -1,0 +1,24 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import ProductoForm from '../../../components/ProductoForm';
+import { gql } from '../../../lib/graphql';
+
+let marcas: { id: string; nombre: string }[] = [];
+let categorias: { id: string; nombre: string }[] = [];
+let error: string | null = null;
+try {
+  const d = await gql<{ marcas: typeof marcas; categorias: typeof categorias }>(
+    `query { marcas { id nombre } categorias { id nombre } }`
+  );
+  marcas = d.marcas;
+  categorias = d.categorias;
+} catch (e) {
+  error = e instanceof Error ? e.message : 'Error desconocido';
+}
+---
+
+<AdminLayout titulo="Agregar producto">
+  <a slot="acciones" class="btn btn-secondary" href="/admin/productos">Volver a productos</a>
+  {error && <div class="aviso aviso--error" role="alert">{error}</div>}
+  {!error && <ProductoForm client:load marcas={marcas} categorias={categorias} />}
+</AdminLayout>

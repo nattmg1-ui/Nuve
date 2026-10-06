@@ -1,0 +1,74 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { gql } from '../../lib/graphql';
+
+interface Usuario {
+  id: string;
+  nombre: string;
+  correo: string;
+  activo: boolean;
+  fechaRegistro: string;
+  rol: { nombre: string };
+}
+
+let usuarios: Usuario[] = [];
+let roles: { id: string; nombre: string }[] = [];
+let error: string | null = null;
+try {
+  const d = await gql<{ usuarios: Usuario[]; roles: typeof roles }>(
+    `query { usuarios { id nombre correo activo fechaRegistro rol { nombre } } roles { id nombre } }`,
+    {},
+    Astro.locals.accessToken
+  );
+  usuarios = d.usuarios;
+  roles = d.roles;
+} catch (e) {
+  error = e instanceof Error ? e.message : 'Error desconocido';
+}
+---
+
+<AdminLayout titulo="Usuarios" descripcion="Cuentas registradas y alta de nuevos usuarios.">
+  {error && <div class="aviso aviso--error" role="alert">{error}</div>}
+
+  <p class="admin-conteo">{usuarios.length} usuario{usuarios.length === 1 ? '' : 's'}</p>
+
+  <div class="panel-tabla-wrap">
+    <table class="panel-tabla">
+      <thead>
+        <tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Registro</th><th>Cuenta</th></tr>
+      </thead>
+      <tbody>
+        {
+          usuarios.map((u) => (
+            <tr>
+              <td>{u.nombre}</td>
+              <td>{u.correo}</td>
+              <td><span class="etiqueta">{u.rol.nombre}</span></td>
+              <td>{u.fechaRegistro}</td>
+              <td>
+                <span class:list={['etiqueta', u.activo ? 'etiqueta--activo' : 'etiqueta--inactivo']}>
+                  {u.activo ? 'Activa' : 'Desactivada'}
+                </span>
+              </td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <h3 class="panel-subtitulo">Agregar usuario</h3>
+  <form class="panel-form auth-form" method="post" action="/api/admin/usuario-crear">
+    <label for="u-nombre">Nombre</label>
+    <input class="input" id="u-nombre" name="nombre" required minlength="2" maxlength="120" />
+    <label for="u-correo">Correo</label>
+    <input class="input" id="u-correo" name="correo" type="email" required />
+    <label for="u-password">Contraseña (mínimo 8 caracteres)</label>
+    <input class="input" id="u-password" name="password" type="password" minlength="8" required autocomplete="new-password" />
+    <label for="u-rol">Rol</label>
+    <select class="input" id="u-rol" name="rolId" required>
+      {roles.map((r) => <option value={r.id}>{r.nombre}</option>)}
+    </select>
+    <button class="btn btn-primary" type="submit">Crear usuario</button>
+  </form>
+</AdminLayout>

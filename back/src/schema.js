@@ -232,6 +232,32 @@ export const typeDefs = `#graphql
     activo: Boolean
   }
 
+  """Variante dentro del formulario de producto. Sin id = variante nueva."""
+  input VarianteCompletaInput {
+    id: ID
+    tono: String
+    codigoHex: String
+    presentacion: String
+    precio: Float!
+    sku: String!
+    existencias: Int!
+  }
+
+  input ImagenCompletaInput {
+    urlImagen: String!
+    principal: Boolean
+  }
+
+  """Producto completo: datos, variantes con existencias e imágenes, en una sola operación."""
+  input ProductoCompletoInput {
+    nombre: String!
+    descripcion: String
+    categoriaId: ID!
+    marcaId: ID!
+    variantes: [VarianteCompletaInput!]!
+    imagenes: [ImagenCompletaInput!]!
+  }
+
   input ProductoInput {
     categoriaId: ID!
     marcaId: ID!
@@ -339,7 +365,8 @@ export const typeDefs = `#graphql
     categorias: [Categoria!]!
     categoria(id: ID!): Categoria
 
-    productos(limite: Int, desde: Int): [Producto!]!
+    """Catálogo. Los productos desactivados solo los ve el personal si pide incluirInactivos."""
+    productos(limite: Int, desde: Int, incluirInactivos: Boolean): [Producto!]!
     producto(id: ID!): Producto
 
     variantesProducto: [VarianteProducto!]!
@@ -399,6 +426,10 @@ export const typeDefs = `#graphql
     eliminarCategoria(id: ID!): Boolean!
 
     # --- Producto ---
+    """Crea (sin id) o actualiza (con id) un producto completo en una transacción."""
+    guardarProducto(id: ID, datos: ProductoCompletoInput!): Producto!
+    """Desactiva o reactiva un producto. Desactivado deja de verse en la tienda."""
+    cambiarActivoProducto(id: ID!, activo: Boolean!): Producto
     crearProducto(datos: ProductoInput!): Producto!
     actualizarProducto(id: ID!, datos: ProductoInput!): Producto
     eliminarProducto(id: ID!): Boolean!

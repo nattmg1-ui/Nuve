@@ -1,7 +1,7 @@
 import { accionFormulario } from '../../../lib/acciones';
 import { gql } from '../../../lib/graphql';
 
-export const POST = accionFormulario('/admin', 'Usuario creado.', (f, token) =>
+export const POST = accionFormulario('/admin/usuarios', 'Usuario creado.', (f, token) =>
   gql(
     `mutation ($datos: UsuarioInput!) { crearUsuario(datos: $datos) { id } }`,
     {

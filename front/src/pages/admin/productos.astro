@@ -1,0 +1,125 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { gql } from '../../lib/graphql';
+
+interface Producto {
+  id: string;
+  nombre: string;
+  activo: boolean;
+  marca: { nombre: string };
+  categoria: { nombre: string };
+  variantes: { precio: number; inventario: { cantidad: number } | null }[];
+  imagenes: { urlImagen: string; principal: boolean }[];
+}
+
+let productos: Producto[] = [];
+let error: string | null = null;
+try {
+  productos = (
+    await gql<{ productos: Producto[] }>(
+      `query {
+        productos(incluirInactivos: true) {
+          id nombre activo
+          marca { nombre }
+          categoria { nombre }
+          variantes { precio inventario { cantidad } }
+          imagenes { urlImagen principal }
+        }
+      }`,
+      {},
+      Astro.locals.accessToken
+    )
+  ).productos;
+} catch (e) {
+  error = e instanceof Error ? e.message : 'Error desconocido';
+}
+
+// Filtros desde la URL: ?q=texto&estado=activos|inactivos
+const q = (Astro.url.searchParams.get('q') ?? '').trim();
+const estado = Astro.url.searchParams.get('estado') ?? '';
+const texto = q.toLowerCase();
+
+const visibles = productos.filter((p) => {
+  const coincide =
+    !texto || p.nombre.toLowerCase().includes(texto) || p.marca.nombre.toLowerCase().includes(texto);
+  const porEstado = estado === 'activos' ? p.activo : estado === 'inactivos' ? !p.activo : true;
+  return coincide && porEstado;
+});
+
+const existencias = (p: Producto) => p.variantes.reduce((acc, v) => acc + (v.inventario?.cantidad ?? 0), 0);
+const precioDesde = (p: Producto) => (p.variantes.length ? Math.min(...p.variantes.map((v) => v.precio)) : 0);
+---
+
+<AdminLayout titulo="Productos" descripcion="Catálogo completo, incluidos los productos desactivados.">
+  <a slot="acciones" class="btn btn-primary" href="/admin/productos/nuevo">Agregar producto</a>
+
+  {error && <div class="aviso aviso--error" role="alert">{error}</div>}
+
+  <form class="admin-filtros" method="get">
+    <input class="input" type="search" name="q" value={q} placeholder="Buscar por nombre o marca" aria-label="Buscar producto" />
+    <select class="input" name="estado" aria-label="Filtrar por estado">
+      <option value="">Todos</option>
+      <option value="activos" selected={estado === 'activos'}>Activos</option>
+      <option value="inactivos" selected={estado === 'inactivos'}>Desactivados</option>
+    </select>
+    <button class="btn btn-secondary btn-sm" type="submit">Filtrar</button>
+  </form>
+
+  <p class="admin-conteo">{visibles.length} producto{visibles.length === 1 ? '' : 's'}</p>
+
+  <div class="panel-tabla-wrap">
+    <table class="panel-tabla">
+      <thead>
+        <tr><th></th><th>Producto</th><th>Categoría</th><th>Variantes</th><th>Desde</th><th>Existencias</th><th>Estado</th><th></th></tr>
+      </thead>
+      <tbody>
+        {
+          visibles.map((p) => {
+            const imagen = p.imagenes.find((i) => i.principal) ?? p.imagenes[0];
+            const stock = existencias(p);
+            return (
+              <tr>
+                <td>{imagen ? <img class="admin-miniatura" src={imagen.urlImagen} alt="" loading="lazy" /> : <span class="admin-miniatura" />}</td>
+                <td>
+                  <p class="admin-producto__nombre">{p.nombre}</p>
+                  <p class="admin-producto__marca">{p.marca.nombre}</p>
+                </td>
+                <td>{p.categoria.nombre}</td>
+                <td>{p.variantes.length}</td>
+                <td>${precioDesde(p).toFixed(2)}</td>
+                <td>
+                  {stock === 0 ? (
+                    <span class="etiqueta etiqueta--agotado">Agotado</span>
+                  ) : stock < 5 ? (
+                    <span class="etiqueta etiqueta--alerta">{stock} · bajo</span>
+                  ) : (
+                    stock
+                  )}
+                </td>
+                <td>
+                  <span class:list={['etiqueta', p.activo ? 'etiqueta--activo' : 'etiqueta--inactivo']}>
+                    {p.activo ? 'Activo' : 'Desactivado'}
+                  </span>
+                </td>
+                <td>
+                  <div class="panel-inline">
+                    <a class="btn btn-secondary btn-sm" href={`/admin/productos/${p.id}`}>Editar</a>
+                    <form
+                      method="post"
+                      action="/api/admin/producto-activo"
+                      onsubmit={p.activo ? "return confirm('El producto dejará de verse en la tienda. ¿Desactivarlo?')" : undefined}
+                    >
+                      <input type="hidden" name="productoId" value={p.id} />
+                      <input type="hidden" name="activo" value={p.activo ? 'false' : 'true'} />
+                      <button class="btn btn-secondary btn-sm" type="submit">{p.activo ? 'Desactivar' : 'Activar'}</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            );
+          })
+        }
+      </tbody>
+    </table>
+  </div>
+</AdminLayout>

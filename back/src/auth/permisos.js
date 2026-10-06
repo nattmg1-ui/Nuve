@@ -41,6 +41,7 @@ export const PERMISOS = {
     // Catálogo: solo administrador
     crearMarca: [ADMIN], actualizarMarca: [ADMIN], eliminarMarca: [ADMIN],
     crearCategoria: [ADMIN], actualizarCategoria: [ADMIN], eliminarCategoria: [ADMIN],
+    guardarProducto: [ADMIN], cambiarActivoProducto: [ADMIN],
     crearProducto: [ADMIN], actualizarProducto: [ADMIN], eliminarProducto: [ADMIN],
     crearVarianteProducto: [ADMIN], actualizarVarianteProducto: [ADMIN], eliminarVarianteProducto: [ADMIN],
     crearImagenProducto: [ADMIN], actualizarImagenProducto: [ADMIN], eliminarImagenProducto: [ADMIN],

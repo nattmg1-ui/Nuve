@@ -1,0 +1,31 @@
+---
+// Plantilla de todas las páginas de administración: menú de secciones,
+// título, botones de acción (slot "acciones") y mensajes de éxito/error.
+import Layout from './Layout.astro';
+import AdminNav from '../components/AdminNav.astro';
+import Avisos from '../components/Avisos.astro';
+import '../components/Panel.css';
+import '../components/Admin.css';
+
+interface Props {
+  titulo: string;
+  descripcion?: string;
+}
+
+const { titulo, descripcion } = Astro.props;
+---
+
+<Layout titulo={`${titulo} — Administración Nuvé`}>
+  <AdminNav />
+  <div class="admin__encabezado">
+    <div>
+      <h2 class="panel-titulo">{titulo}</h2>
+      {descripcion && <p class="panel-intro">{descripcion}</p>}
+    </div>
+    <div class="admin__acciones">
+      <slot name="acciones" />
+    </div>
+  </div>
+  <Avisos />
+  <slot />
+</Layout>

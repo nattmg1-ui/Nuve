@@ -1,0 +1,44 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import ProductoForm, { type ProductoEdicion } from '../../../components/ProductoForm';
+import { gql } from '../../../lib/graphql';
+
+let marcas: { id: string; nombre: string }[] = [];
+let categorias: { id: string; nombre: string }[] = [];
+let producto: ProductoEdicion | null = null;
+let error: string | null = null;
+try {
+  const d = await gql<{ marcas: typeof marcas; categorias: typeof categorias; producto: ProductoEdicion | null }>(
+    `query ($id: ID!) {
+      marcas { id nombre }
+      categorias { id nombre }
+      producto(id: $id) {
+        id nombre descripcion activo
+        categoria { id }
+        marca { id }
+        variantes { id tono codigoHex presentacion precio sku inventario { cantidad } }
+        imagenes { urlImagen principal }
+      }
+    }`,
+    { id: Astro.params.id },
+    Astro.locals.accessToken
+  );
+  marcas = d.marcas;
+  categorias = d.categorias;
+  producto = d.producto;
+} catch (e) {
+  error = e instanceof Error ? e.message : 'Error desconocido';
+}
+if (!error && !producto) return Astro.redirect('/admin/productos?error=' + encodeURIComponent('El producto no existe.'));
+---
+
+<AdminLayout titulo={producto ? `Editar: ${producto.nombre}` : 'Editar producto'}>
+  <a slot="acciones" class="btn btn-secondary" href="/admin/productos">Volver a productos</a>
+  {error && <div class="aviso aviso--error" role="alert">{error}</div>}
+  {
+    producto && !producto.activo && (
+      <div class="aviso" role="status">Este producto está desactivado: no se ve en la tienda.</div>
+    )
+  }
+  {producto && <ProductoForm client:load marcas={marcas} categorias={categorias} producto={producto} />}
+</AdminLayout>

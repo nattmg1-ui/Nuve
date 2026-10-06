@@ -14,6 +14,8 @@ import { sinPermiso, datosInvalidos } from './auth/errores.js';
 import * as authServicio from './auth/servicio.js';
 import { estadosSiguientes, validarTransicion } from './pedidos/estados.js';
 import { validarDireccion } from './direcciones/validacion.js';
+import { validarProducto } from './productos/validacion.js';
+import { guardarProductoCompleto } from './productos/servicio.js';
 
 const hoy = () => new Date().toISOString().slice(0, 10);
 
@@ -260,9 +262,12 @@ export const resolvers = protegerResolvers({
     categorias: () => findAll('categoria', mapCategoria),
     categoria: (_, { id: tid }) => findById('categoria', mapCategoria, tid),
 
-    productos: async (_, { limite, desde }) => {
+    // La tienda solo muestra productos activos. El personal puede pedir también
+    // los desactivados (para el panel de administración).
+    productos: async (_, { limite, desde, incluirInactivos }, ctx) => {
       const params = [];
-      let sql = 'SELECT * FROM producto ORDER BY id';
+      const verTodos = incluirInactivos && esStaff(ctx.usuario);
+      let sql = `SELECT * FROM producto ${verTodos ? '' : 'WHERE activo = TRUE'} ORDER BY id`;
       if (limite) {
         params.push(limite);
         sql += ` LIMIT $${params.length}`;
@@ -274,9 +279,20 @@ export const resolvers = protegerResolvers({
       const { rows } = await query(sql, params);
       return rows.map(mapProducto);
     },
-    producto: (_, { id: tid }) => findById('producto', mapProducto, tid),
+    producto: async (_, { id: tid }, ctx) => {
+      const producto = await findById('producto', mapProducto, tid);
+      if (!producto) return null;
+      // Un producto desactivado no existe para los clientes
+      return producto.activo || esStaff(ctx.usuario) ? producto : null;
+    },
 
-    variantesProducto: () => findAll('variante_producto', mapVariante),
+    variantesProducto: async () => {
+      const { rows } = await query(
+        `SELECT v.* FROM variante_producto v JOIN producto p ON p.id = v.producto_id
+         WHERE v.activo = TRUE AND p.activo = TRUE ORDER BY v.id`
+      );
+      return rows.map(mapVariante);
+    },
     varianteProducto: (_, { id: tid }) => findById('variante_producto', mapVariante, tid),
 
     imagenesProducto: () => findAll('imagen_producto', mapImagen),
@@ -330,17 +346,33 @@ export const resolvers = protegerResolvers({
   },
 
   Marca: {
-    productos: (marca) => findWhere('producto', mapProducto, 'marca_id', marca.id),
+    productos: async (marca) => {
+      const { rows } = await query('SELECT * FROM producto WHERE marca_id = $1 AND activo = TRUE ORDER BY id', [marca.id]);
+      return rows.map(mapProducto);
+    },
   },
 
   Categoria: {
-    productos: (categoria) => findWhere('producto', mapProducto, 'categoria_id', categoria.id),
+    productos: async (categoria) => {
+      const { rows } = await query('SELECT * FROM producto WHERE categoria_id = $1 AND activo = TRUE ORDER BY id', [
+        categoria.id,
+      ]);
+      return rows.map(mapProducto);
+    },
   },
 
   Producto: {
     categoria: (producto) => findById('categoria', mapCategoria, producto.categoriaId),
     marca: (producto) => findById('marca', mapMarca, producto.marcaId),
-    variantes: (producto) => findWhere('variante_producto', mapVariante, 'producto_id', producto.id),
+    // Solo variantes activas: las que se quitaron en el panel quedan desactivadas
+    // (siguen existiendo para los pedidos anteriores que las usan).
+    variantes: async (producto) => {
+      const { rows } = await query(
+        'SELECT * FROM variante_producto WHERE producto_id = $1 AND activo = TRUE ORDER BY id',
+        [producto.id]
+      );
+      return rows.map(mapVariante);
+    },
     imagenes: (producto) => findWhere('imagen_producto', mapImagen, 'producto_id', producto.id),
     favoritos: (producto) => findWhere('favorito', mapFavorito, 'producto_id', producto.id),
     resenas: (producto) => findWhere('resena', mapResena, 'producto_id', producto.id),
@@ -514,6 +546,15 @@ export const resolvers = protegerResolvers({
     },
 
     // --- Producto ---
+    guardarProducto: async (_, { id: tid, datos }) => {
+      const limpio = validarProducto(datos);
+      const productoId = await guardarProductoCompleto(tid ?? null, limpio);
+      return findById('producto', mapProducto, productoId);
+    },
+    cambiarActivoProducto: async (_, { id: tid, activo }) => {
+      const { rows } = await query('UPDATE producto SET activo = $1 WHERE id = $2 RETURNING *', [activo, tid]);
+      return rows[0] ? mapProducto(rows[0]) : null;
+    },
     crearProducto: async (_, { datos }) => {
       const { rows } = await query(
         `INSERT INTO producto (categoria_id, marca_id, nombre, descripcion, activo, fecha_registro)
@@ -747,7 +788,8 @@ export const resolvers = protegerResolvers({
             throw datosInvalidos('La cantidad de cada producto debe ser un entero mayor a 0.');
           }
           const { rows } = await client.query(
-            'SELECT precio FROM variante_producto WHERE id = $1 AND activo = TRUE',
+            `SELECT v.precio FROM variante_producto v JOIN producto p ON p.id = v.producto_id
+             WHERE v.id = $1 AND v.activo = TRUE AND p.activo = TRUE`,
             [linea.varianteId]
           );
           if (!rows[0]) throw datosInvalidos('Uno de los productos ya no está disponible.');

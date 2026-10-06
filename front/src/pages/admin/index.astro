@@ -1,85 +1,22 @@
 ---
-import Layout from '../../layouts/Layout.astro';
-import Avisos from '../../components/Avisos.astro';
+// Resumen del panel. En el siguiente paso se agregan las tarjetas de
+// indicadores y el filtro Día / Semana / Mes.
+import AdminLayout from '../../layouts/AdminLayout.astro';
 import VentasChart from '../../components/VentasChart';
-import EstadoPedidoForm from '../../components/EstadoPedidoForm.astro';
-import '../../components/Panel.css';
 import { gql } from '../../lib/graphql';
 
-interface Pedido {
-  id: string;
-  fecha: string;
-  total: number;
-  estado: string;
-  estadosSiguientes: string[];
-  usuario: { nombre: string };
-  detalles: { cantidad: number; variante: { tono: string | null; producto: { nombre: string } } }[];
-}
-
-let pedidos: Pedido[] = [];
-let roles: { id: string; nombre: string }[] = [];
+let pedidos: { fecha: string; total: number; estado: string }[] = [];
 let error: string | null = null;
 try {
-  const token = Astro.locals.accessToken;
   pedidos = (
-    await gql<{ pedidos: Pedido[] }>(
-      `query { pedidos { id fecha total estado estadosSiguientes usuario { nombre } detalles { cantidad variante { tono producto { nombre } } } } }`,
-      {},
-      token
-    )
+    await gql<{ pedidos: typeof pedidos }>(`query { pedidos { fecha total estado } }`, {}, Astro.locals.accessToken)
   ).pedidos;
-  roles = (await gql<{ roles: typeof roles }>(`query { roles { id nombre } }`, {}, token)).roles;
 } catch (e) {
   error = e instanceof Error ? e.message : 'Error desconocido';
 }
 ---
 
-<Layout titulo="Administración — Nuvé">
-  <h2 class="panel-titulo">Administración</h2>
-  <p class="panel-intro">Solo visible para administradores.</p>
-  <Avisos />
+<AdminLayout titulo="Resumen" descripcion="Ventas de la tienda.">
   {error && <div class="aviso aviso--error" role="alert">{error}</div>}
-
-  <h3 class="panel-subtitulo">Ventas</h3>
-  <VentasChart client:load pedidos={pedidos.map((p) => ({ fecha: p.fecha, total: p.total, estado: p.estado }))} />
-
-  <h3 class="panel-subtitulo">Crear usuario</h3>
-  <form class="panel-form" method="post" action="/api/admin/usuario-crear">
-    <input class="input" name="nombre" placeholder="Nombre" required />
-    <input class="input" name="correo" type="email" placeholder="Correo" required />
-    <input class="input" name="password" type="password" placeholder="Contraseña (mínimo 8 caracteres)" minlength="8" required />
-    <select class="input" name="rolId" aria-label="Rol">
-      {roles.map((r) => <option value={r.id}>{r.nombre}</option>)}
-    </select>
-    <button class="btn btn-primary" type="submit">Crear usuario</button>
-  </form>
-
-  <h3 class="panel-subtitulo" id="pedidos">Pedidos</h3>
-  <div class="panel-tabla-wrap">
-    <table class="panel-tabla">
-      <thead>
-        <tr><th>Pedido</th><th>Cliente</th><th>Fecha</th><th>Productos</th><th>Total</th><th>Estado</th></tr>
-      </thead>
-      <tbody>
-        {
-          pedidos.map((p) => (
-            <tr>
-              <td>#{p.id}</td>
-              <td>{p.usuario.nombre}</td>
-              <td>{p.fecha}</td>
-              <td>
-                {p.detalles.map((d) => (
-                  <div>{d.cantidad} × {d.variante.producto.nombre}{d.variante.tono ? ` (${d.variante.tono})` : ''}</div>
-                ))}
-              </td>
-              <td>${p.total.toFixed(2)}</td>
-              <td>
-                <EstadoPedidoForm pedidoId={p.id} estado={p.estado} siguientes={p.estadosSiguientes} volver="/admin" />
-              </td>
-            </tr>
-          ))
-        }
-      </tbody>
-    </table>
-  </div>
-</Layout>
+  <VentasChart client:load pedidos={pedidos} />
+</AdminLayout>

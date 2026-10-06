@@ -1,0 +1,268 @@
+/* front/src/components/Admin.css
+   Estilos del panel de administración: menú de secciones, filtros,
+   tabla de productos y formulario de producto. */
+
+/* ---------- Menú de secciones ---------- */
+
+.admin-nav {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--color-line);
+  margin-bottom: 24px;
+}
+
+.admin-nav__link {
+  padding: 10px 16px;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  color: var(--color-slate);
+  font-weight: 600;
+  font-size: 0.92rem;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.admin-nav__link:hover {
+  color: var(--color-ink);
+}
+
+.admin-nav__link.is-active {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+}
+
+/* ---------- Encabezado de cada sección ---------- */
+
+.admin__encabezado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px 24px;
+}
+
+.admin__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* ---------- Filtros ---------- */
+
+.admin-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.admin-filtros .input {
+  max-width: 280px;
+}
+
+.admin-conteo {
+  font: var(--text-body-sm);
+  color: var(--color-slate);
+  margin: 0 0 12px;
+}
+
+/* ---------- Tabla de productos ---------- */
+
+.admin-miniatura {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--color-line);
+  background: var(--color-bg);
+  display: block;
+}
+
+.admin-producto__nombre {
+  font-weight: 600;
+  margin: 0;
+}
+
+.admin-producto__marca {
+  font: var(--text-caption);
+  color: var(--color-slate);
+  margin: 0;
+}
+
+.etiqueta--activo {
+  color: var(--color-success);
+  border-color: var(--color-success);
+}
+
+.etiqueta--inactivo {
+  color: var(--color-slate);
+  background: var(--color-bg);
+}
+
+.etiqueta--alerta {
+  color: var(--color-warning);
+  border-color: var(--color-warning);
+}
+
+.etiqueta--agotado {
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
+/* ---------- Formulario de producto ---------- */
+
+.pf {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 980px;
+}
+
+.pf__seccion {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  padding: 20px 22px;
+}
+
+.pf__seccion h3 {
+  font: var(--text-h4);
+  margin: 0 0 4px;
+}
+
+.pf__ayuda {
+  font: var(--text-caption);
+  color: var(--color-slate);
+  margin: 0 0 16px;
+}
+
+.pf__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.pf__campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.pf__campo--completo {
+  grid-column: 1 / -1;
+}
+
+.pf__campo label,
+.pf__etiqueta {
+  font: var(--text-label);
+  color: var(--color-slate);
+}
+
+.pf textarea.input {
+  min-height: 96px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.pf__variante {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr 1.2fr 0.8fr 0.8fr auto;
+  gap: 10px;
+  align-items: end;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.pf__color {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pf__color input[type='color'] {
+  flex-shrink: 0;
+  width: 40px;
+  height: 38px;
+  padding: 2px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+}
+
+.pf__color .input {
+  min-width: 0;
+}
+
+.pf__imagen {
+  display: grid;
+  grid-template-columns: 72px 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.pf__preview {
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+  border: 1px solid var(--color-line);
+  background: var(--color-bg);
+  object-fit: cover;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  font: var(--text-caption);
+  color: var(--color-slate);
+  overflow: hidden;
+}
+
+.pf__principal {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: var(--text-body-sm);
+  white-space: nowrap;
+}
+
+.pf__agregar {
+  margin-top: 14px;
+}
+
+.pf__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+@media (max-width: 860px) {
+  .pf__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pf__variante {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pf__variante .pf__quitar {
+    grid-column: 1 / -1;
+  }
+
+  .pf__imagen {
+    grid-template-columns: 56px 1fr;
+  }
+
+  .pf__preview {
+    width: 56px;
+    height: 56px;
+  }
+
+  .pf__imagen > :nth-child(n + 3) {
+    grid-column: 2;
+  }
+}
