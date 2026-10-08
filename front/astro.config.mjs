@@ -8,7 +8,16 @@ import react from '@astrojs/react';
 // Node propio.
 export default defineConfig({
   output: 'server',
-  adapter: netlify(),
+  // edgeFunctions: false -> en local no intenta levantar las Edge Functions
+  // de Netlify (necesitan Deno y el proyecto no las usa). En Netlify no cambia nada.
+  // images y environmentVariables se quedan con su valor de siempre.
+  adapter: netlify({
+    devFeatures: {
+      images: true,
+      environmentVariables: false,
+      edgeFunctions: false,
+    },
+  }),
   integrations: [react()],
   server: { port: 5173 },
 });

@@ -177,6 +177,7 @@ export const typeDefs = `#graphql
     id: ID!
     usuario: Usuario!
     direccion: Direccion!
+    """Fecha y hora del pedido en hora de la Ciudad de México (AAAA-MM-DD HH:MM)."""
     fecha: String!
     subtotal: Float!
     total: Float!
@@ -345,6 +346,48 @@ export const typeDefs = `#graphql
   }
 
   # ------------------------------------------------------------------
+  # REPORTES (resumen de ventas del panel de administración)
+  # ------------------------------------------------------------------
+
+  enum PeriodoVentas {
+    """Hoy, por hora"""
+    DIA
+    """Últimos 7 días, por día"""
+    SEMANA
+    """Últimos 30 días, por día"""
+    MES
+  }
+
+  type PuntoVenta {
+    etiqueta: String!
+    total: Float!
+    pedidos: Int!
+  }
+
+  type ProductoVendido {
+    productoId: ID!
+    nombre: String!
+    piezas: Int!
+    ingresos: Float!
+  }
+
+  """Indicadores del panel. Solo cuentan pedidos PAGADO, ENVIADO y ENTREGADO."""
+  type ResumenVentas {
+    periodo: PeriodoVentas!
+    ventasTotales: Float!
+    numPedidos: Int!
+    ticketPromedio: Float!
+    piezasVendidas: Int!
+    ventasPeriodoAnterior: Float!
+    """Cambio contra el periodo anterior de la misma duración; null si antes no hubo ventas."""
+    cambioPorcentual: Float
+    pedidosPendientes: Int!
+    pedidosPorEnviar: Int!
+    serie: [PuntoVenta!]!
+    masVendidos: [ProductoVendido!]!
+  }
+
+  # ------------------------------------------------------------------
   # QUERY (lista + por id de las entidades principales; las tablas de
   # detalle/union -DetalleCarrito, DetallePedido, Inventario- solo se
   # consultan anidadas desde su entidad dueña)
@@ -352,6 +395,9 @@ export const typeDefs = `#graphql
 
   type Query {
     yo: Usuario
+
+    """Resumen de ventas del panel (solo ADMIN)."""
+    resumenVentas(periodo: PeriodoVentas!): ResumenVentas!
 
     roles: [Rol!]!
     rol(id: ID!): Rol

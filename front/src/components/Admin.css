@@ -266,3 +266,165 @@
     grid-column: 2;
   }
 }
+/* ---------- Resumen: periodo, indicadores y tarjetas ---------- */
+
+.admin-periodos {
+  display: inline-flex;
+  padding: 4px;
+  gap: 4px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  margin-bottom: 8px;
+}
+
+.admin-periodos__opcion {
+  padding: 6px 18px;
+  border-radius: var(--radius-pill);
+  color: var(--color-slate);
+  font-weight: 600;
+  font-size: 0.88rem;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.admin-periodos__opcion:hover {
+  color: var(--color-ink);
+}
+
+.admin-periodos__opcion.is-active {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.admin-atencion {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  align-items: center;
+}
+
+.admin-atencion a {
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.kpi {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  padding: 18px 20px;
+}
+
+.kpi__etiqueta {
+  font: var(--text-label);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-slate);
+  margin: 0 0 6px;
+}
+
+.kpi__valor {
+  font: var(--text-h2);
+  color: var(--color-ink);
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi__nota {
+  font: var(--text-caption);
+  color: var(--color-slate);
+  margin: 6px 0 0;
+}
+
+.kpi__cambio {
+  font-weight: 600;
+}
+
+.kpi__cambio--sube {
+  color: var(--color-success);
+}
+
+.kpi__cambio--baja {
+  color: var(--color-error);
+}
+
+.admin-tarjeta {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  padding: 20px 22px;
+  margin-bottom: 20px;
+}
+
+.admin-tarjeta__titulo {
+  font: var(--text-h4);
+  margin: 0 0 14px;
+}
+
+.ventas-grafica {
+  position: relative;
+  height: 300px;
+}
+
+.admin-detalle {
+  margin-top: 14px;
+}
+
+.admin-detalle summary {
+  cursor: pointer;
+  font: var(--text-body-sm);
+  font-weight: 600;
+  color: var(--color-accent);
+  margin-bottom: 10px;
+}
+
+@media (max-width: 860px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ventas-grafica {
+    height: 240px;
+  }
+}
+
+@media (max-width: 420px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Modo oscuro: el Ciruela (--color-accent) es el mismo color que las
+   superficies, así que lo seleccionado y los enlaces usan tonos claros. */
+@media (prefers-color-scheme: dark) {
+  .admin-nav__link.is-active {
+    color: var(--color-primario-selected-bg);
+    border-bottom-color: var(--color-primario-selected-bg);
+  }
+
+  .admin-periodos__opcion.is-active {
+    background: #FBF6F1;
+    color: var(--color-acento);
+  }
+
+  .admin-atencion a,
+  .admin-detalle summary {
+    color: var(--color-primario-selected-bg);
+  }
+
+  .kpi__cambio--sube {
+    color: #A9D3B3;
+  }
+
+  .kpi__cambio--baja {
+    color: #F2A9A1;
+  }
+}

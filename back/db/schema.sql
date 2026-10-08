@@ -137,7 +137,7 @@ CREATE TABLE pedido (
   id                   SERIAL PRIMARY KEY,
   usuario_id           INTEGER NOT NULL REFERENCES usuario(id),
   direccion_id         INTEGER NOT NULL REFERENCES direccion(id),
-  fecha                DATE NOT NULL DEFAULT CURRENT_DATE,
+  fecha                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   subtotal             DECIMAL(10,2) NOT NULL,
   total                DECIMAL(10,2) NOT NULL,
   estado               status_pedido NOT NULL DEFAULT 'PENDIENTE',
@@ -175,6 +175,7 @@ CREATE INDEX idx_variante_producto ON variante_producto(producto_id);
 CREATE INDEX idx_imagen_producto ON imagen_producto(producto_id);
 CREATE INDEX idx_detalle_carrito_carrito ON detalle_carrito(carrito_id);
 CREATE INDEX idx_detalle_pedido_pedido ON detalle_pedido(pedido_id);
+CREATE INDEX idx_pedido_fecha ON pedido(fecha);
 CREATE INDEX idx_favorito_usuario ON favorito(usuario_id);
 CREATE INDEX idx_resena_producto ON resena(producto_id);
 CREATE INDEX idx_refresh_usuario ON refresh_token(usuario_id);

@@ -1,22 +1,188 @@
 ---
-// Resumen del panel. En el siguiente paso se agregan las tarjetas de
-// indicadores y el filtro Día / Semana / Mes.
+// Resumen del panel: indicadores, gráfica de ventas y productos más vendidos,
+// con filtro por periodo (?periodo=dia | semana | mes).
 import AdminLayout from '../../layouts/AdminLayout.astro';
-import VentasChart from '../../components/VentasChart';
+import VentasChart, { type PuntoVenta } from '../../components/VentasChart';
 import { gql } from '../../lib/graphql';
 
-let pedidos: { fecha: string; total: number; estado: string }[] = [];
+const PERIODOS = {
+  dia: { valor: 'DIA', texto: 'Día', detalle: 'Hoy, por hora', ejeX: 'Hora', anterior: 'ayer' },
+  semana: { valor: 'SEMANA', texto: 'Semana', detalle: 'Últimos 7 días', ejeX: 'Día', anterior: 'los 7 días previos' },
+  mes: { valor: 'MES', texto: 'Mes', detalle: 'Últimos 30 días', ejeX: 'Día', anterior: 'los 30 días previos' },
+} as const;
+type ClavePeriodo = keyof typeof PERIODOS;
+
+const param = Astro.url.searchParams.get('periodo') ?? '';
+const clave: ClavePeriodo = param in PERIODOS ? (param as ClavePeriodo) : 'semana';
+const periodo = PERIODOS[clave];
+
+interface Resumen {
+  ventasTotales: number;
+  numPedidos: number;
+  ticketPromedio: number;
+  piezasVendidas: number;
+  ventasPeriodoAnterior: number;
+  cambioPorcentual: number | null;
+  pedidosPendientes: number;
+  pedidosPorEnviar: number;
+  serie: PuntoVenta[];
+  masVendidos: { productoId: string; nombre: string; piezas: number; ingresos: number }[];
+}
+
+let resumen: Resumen | null = null;
 let error: string | null = null;
 try {
-  pedidos = (
-    await gql<{ pedidos: typeof pedidos }>(`query { pedidos { fecha total estado } }`, {}, Astro.locals.accessToken)
-  ).pedidos;
+  resumen = (
+    await gql<{ resumenVentas: Resumen }>(
+      `query ($periodo: PeriodoVentas!) {
+        resumenVentas(periodo: $periodo) {
+          ventasTotales numPedidos ticketPromedio piezasVendidas
+          ventasPeriodoAnterior cambioPorcentual pedidosPendientes pedidosPorEnviar
+          serie { etiqueta total pedidos }
+          masVendidos { productoId nombre piezas ingresos }
+        }
+      }`,
+      { periodo: periodo.valor },
+      Astro.locals.accessToken
+    )
+  ).resumenVentas;
 } catch (e) {
   error = e instanceof Error ? e.message : 'Error desconocido';
 }
+
+const pesos = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
+const hayVentas = (resumen?.numPedidos ?? 0) > 0;
+const cambio = resumen?.cambioPorcentual ?? null;
 ---
 
-<AdminLayout titulo="Resumen" descripcion="Ventas de la tienda.">
+<AdminLayout titulo="Resumen" descripcion="Ventas cobradas: pedidos pagados, enviados y entregados.">
   {error && <div class="aviso aviso--error" role="alert">{error}</div>}
-  <VentasChart client:load pedidos={pedidos} />
+
+  <nav class="admin-periodos" aria-label="Periodo">
+    {
+      (Object.keys(PERIODOS) as ClavePeriodo[]).map((k) => (
+        <a
+          href={`/admin?periodo=${k}`}
+          class:list={['admin-periodos__opcion', { 'is-active': k === clave }]}
+          aria-current={k === clave ? 'page' : undefined}
+        >
+          {PERIODOS[k].texto}
+        </a>
+      ))
+    }
+  </nav>
+  <p class="admin-conteo">{periodo.detalle} · hora de la Ciudad de México</p>
+
+  {
+    resumen && (
+      <>
+        {(resumen.pedidosPendientes > 0 || resumen.pedidosPorEnviar > 0) && (
+          <div class="aviso admin-atencion" role="status">
+            <span>Requieren atención:</span>
+            {resumen.pedidosPorEnviar > 0 && (
+              <a href="/admin/pedidos?estado=PAGADO">
+                {resumen.pedidosPorEnviar} pagado{resumen.pedidosPorEnviar === 1 ? '' : 's'} por enviar
+              </a>
+            )}
+            {resumen.pedidosPendientes > 0 && (
+              <a href="/admin/pedidos?estado=PENDIENTE">
+                {resumen.pedidosPendientes} pendiente{resumen.pedidosPendientes === 1 ? '' : 's'} de pago
+              </a>
+            )}
+          </div>
+        )}
+
+        <section class="kpi-grid" aria-label="Indicadores">
+          <article class="kpi">
+            <p class="kpi__etiqueta">Ventas</p>
+            <p class="kpi__valor">{pesos.format(resumen.ventasTotales)}</p>
+            <p class="kpi__nota">
+              {cambio === null ? (
+                `Sin ventas en ${periodo.anterior}`
+              ) : (
+                <>
+                  <span class:list={['kpi__cambio', cambio >= 0 ? 'kpi__cambio--sube' : 'kpi__cambio--baja']}>
+                    {cambio >= 0 ? '▲' : '▼'} {Math.abs(cambio)}%
+                  </span>{' '}
+                  vs. {periodo.anterior}
+                </>
+              )}
+            </p>
+          </article>
+          <article class="kpi">
+            <p class="kpi__etiqueta">Pedidos</p>
+            <p class="kpi__valor">{resumen.numPedidos}</p>
+            <p class="kpi__nota">cobrados en el periodo</p>
+          </article>
+          <article class="kpi">
+            <p class="kpi__etiqueta">Ticket promedio</p>
+            <p class="kpi__valor">{pesos.format(resumen.ticketPromedio)}</p>
+            <p class="kpi__nota">por pedido</p>
+          </article>
+          <article class="kpi">
+            <p class="kpi__etiqueta">Piezas vendidas</p>
+            <p class="kpi__valor">{resumen.piezasVendidas}</p>
+            <p class="kpi__nota">en todos los productos</p>
+          </article>
+        </section>
+
+        <section class="admin-tarjeta">
+          <h3 class="admin-tarjeta__titulo">Ventas por {periodo.ejeX.toLowerCase()}</h3>
+          {hayVentas ? (
+            <>
+              <VentasChart client:load serie={resumen.serie} ejeX={periodo.ejeX} />
+              <details class="admin-detalle">
+                <summary>Ver como tabla</summary>
+                <div class="panel-tabla-wrap">
+                  <table class="panel-tabla">
+                    <thead>
+                      <tr><th>{periodo.ejeX}</th><th>Pedidos</th><th>Ventas</th></tr>
+                    </thead>
+                    <tbody>
+                      {resumen.serie
+                        .filter((p) => p.pedidos > 0)
+                        .map((p) => (
+                          <tr>
+                            <td>{p.etiqueta}</td>
+                            <td>{p.pedidos}</td>
+                            <td>{pesos.format(p.total)}</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </details>
+            </>
+          ) : (
+            <p class="panel-intro">No hay ventas cobradas en este periodo.</p>
+          )}
+        </section>
+
+        <section class="admin-tarjeta">
+          <h3 class="admin-tarjeta__titulo">Productos más vendidos</h3>
+          {resumen.masVendidos.length === 0 ? (
+            <p class="panel-intro">Todavía no hay productos vendidos en este periodo.</p>
+          ) : (
+            <div class="panel-tabla-wrap">
+              <table class="panel-tabla">
+                <thead>
+                  <tr><th>#</th><th>Producto</th><th>Piezas</th><th>Ingresos</th></tr>
+                </thead>
+                <tbody>
+                  {resumen.masVendidos.map((p, i) => (
+                    <tr>
+                      <td>{i + 1}</td>
+                      <td><a href={`/admin/productos/${p.productoId}`}>{p.nombre}</a></td>
+                      <td>{p.piezas}</td>
+                      <td>{pesos.format(p.ingresos)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      </>
+    )
+  }
 </AdminLayout>

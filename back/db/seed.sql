@@ -2,6 +2,9 @@
 -- Datos semilla (mismo catálogo que back/src/data/mock.js), generado a partir de él.
 -- Ejecutar después de schema.sql: psql -d nuve_ecommerce -f db/seed.sql
 
+-- Las fechas de pedidos se interpretan en hora de la Ciudad de México
+SET TIME ZONE 'America/Mexico_City';
+
 INSERT INTO rol (id, nombre, descripcion) VALUES
   (1, 'CLIENTE', 'Compra en la tienda y gestiona sus pedidos'),
   (2, 'ADMIN', 'Administra catalogo, usuarios y roles'),

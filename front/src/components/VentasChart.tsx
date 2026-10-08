@@ -1,84 +1,111 @@
 import { useEffect, useRef } from 'react';
 import { Chart, registerables } from 'chart.js';
-import './Panel.css';
 
 Chart.register(...registerables);
 
-interface PedidoVenta {
-  fecha: string; // 'YYYY-MM-DD'
+// Gráfica de ventas del Resumen. Recibe la serie ya calculada por el backend
+// (una barra por hora o por día) y la dibuja con Chart.js.
+
+export interface PuntoVenta {
+  etiqueta: string;
   total: number;
-  estado: string;
+  pedidos: number;
 }
 
-/** Suma los totales por día, sin contar los pedidos CANCELADOS. */
-function agruparPorDia(pedidos: PedidoVenta[]) {
-  const porDia = new Map<string, number>();
-  for (const p of pedidos) {
-    if (p.estado === 'CANCELADO') continue;
-    porDia.set(p.fecha, (porDia.get(p.fecha) ?? 0) + p.total);
-  }
-  const fechas = Array.from(porDia.keys()).sort();
-  return { fechas, totales: fechas.map((f) => porDia.get(f) ?? 0) };
+interface Props {
+  serie: PuntoVenta[];
+  /** Texto del eje X, por ejemplo "Hora" o "Día" */
+  ejeX: string;
 }
 
-export default function VentasChart({ pedidos }: { pedidos: PedidoVenta[] }) {
+const pesos = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 });
+const pesosExactos = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
+
+// Colores de la marca, ajustados para que la barra se distinga del fondo en
+// modo claro y en modo oscuro. El texto y la cuadrícula salen de theme.css.
+function colores() {
+  const css = getComputedStyle(document.documentElement);
+  const oscuro = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  return {
+    barra: oscuro ? '#D9845A' : '#C2704C',
+    barraHover: oscuro ? '#E6956C' : '#A85E3D',
+    texto: css.getPropertyValue('--color-texto-secundario').trim() || '#6B5F58',
+    linea: css.getPropertyValue('--color-borde').trim() || '#E5DAD1',
+  };
+}
+
+export default function VentasChart({ serie, ejeX }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const chartRef = useRef<Chart | null>(null);
-
-  const { fechas, totales } = agruparPorDia(pedidos);
-  const ventasTotales = totales.reduce((acc, v) => acc + v, 0);
-  const pedidosContados = pedidos.filter((p) => p.estado !== 'CANCELADO').length;
 
   useEffect(() => {
     if (!canvasRef.current) return;
+    const c = colores();
 
-    chartRef.current?.destroy();
-    chartRef.current = new Chart(canvasRef.current, {
-      type: 'line',
+    const chart = new Chart(canvasRef.current, {
+      type: 'bar',
       data: {
-        labels: fechas,
+        labels: serie.map((p) => p.etiqueta),
         datasets: [
           {
-            label: 'Ventas ($)',
-            data: totales,
-            borderColor: '#BE846A',
-            backgroundColor: 'rgba(190, 132, 106, 0.15)',
-            tension: 0.25,
-            fill: true,
+            label: 'Ventas',
+            data: serie.map((p) => p.total),
+            backgroundColor: c.barra,
+            hoverBackgroundColor: c.barraHover,
+            borderRadius: { topLeft: 4, topRight: 4 },
+            borderSkipped: 'bottom',
+            maxBarThickness: 28,
+            categoryPercentage: 0.8,
           },
         ],
       },
       options: {
         responsive: true,
-        plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true } },
+        maintainAspectRatio: false,
+        animation: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            displayColors: false,
+            callbacks: {
+              title: (items) => `${ejeX}: ${items[0].label}`,
+              label: (item) => {
+                const punto = serie[item.dataIndex];
+                return [
+                  `Ventas: ${pesosExactos.format(punto.total)}`,
+                  `Pedidos: ${punto.pedidos}`,
+                ];
+              },
+            },
+          },
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            border: { color: c.linea },
+            ticks: { color: c.texto, maxRotation: 0, autoSkip: true, autoSkipPadding: 12 },
+            title: { display: true, text: ejeX, color: c.texto },
+          },
+          y: {
+            beginAtZero: true,
+            grid: { color: c.linea },
+            border: { display: false },
+            ticks: { color: c.texto, maxTicksLimit: 6, callback: (v) => pesos.format(Number(v)) },
+          },
+        },
       },
     });
 
-    return () => chartRef.current?.destroy();
-  }, [fechas.join(','), totales.join(',')]);
-
-  if (pedidos.length === 0) {
-    return <p className="panel-intro">Aún no hay pedidos para graficar.</p>;
-  }
+    return () => chart.destroy();
+  }, [serie, ejeX]);
 
   return (
-    <div>
-      <div className="panel-inline" style={{ gap: 24, marginBottom: 16 }}>
-        <div>
-          <p className="sidebar__title" style={{ marginBottom: 4 }}>
-            Ventas totales
-          </p>
-          <p style={{ font: 'var(--text-h3)' }}>${ventasTotales.toFixed(2)}</p>
-        </div>
-        <div>
-          <p className="sidebar__title" style={{ marginBottom: 4 }}>
-            Pedidos (sin cancelados)
-          </p>
-          <p style={{ font: 'var(--text-h3)' }}>{pedidosContados}</p>
-        </div>
-      </div>
-      <canvas ref={canvasRef} role="img" aria-label="Gráfica de ventas por día" />
+    <div className="ventas-grafica">
+      <canvas
+        ref={canvasRef}
+        role="img"
+        aria-label={`Gráfica de ventas por ${ejeX.toLowerCase()}. El detalle está en la tabla de abajo.`}
+      />
     </div>
   );
 }

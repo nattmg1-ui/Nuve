@@ -18,6 +18,7 @@ const STAFF = [ADMIN, OPERADOR];
 export const PERMISOS = {
   Query: {
     yo: AUTH,
+    resumenVentas: [ADMIN],
     roles: [ADMIN],
     rol: [ADMIN],
     usuarios: [ADMIN],

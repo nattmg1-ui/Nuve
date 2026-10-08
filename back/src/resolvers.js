@@ -16,6 +16,7 @@ import { estadosSiguientes, validarTransicion } from './pedidos/estados.js';
 import { validarDireccion } from './direcciones/validacion.js';
 import { validarProducto } from './productos/validacion.js';
 import { guardarProductoCompleto } from './productos/servicio.js';
+import { resumenVentas } from './reportes/ventas.js';
 
 const hoy = () => new Date().toISOString().slice(0, 10);
 
@@ -25,6 +26,18 @@ const hoy = () => new Date().toISOString().slice(0, 10);
 
 const id = (v) => (v === null || v === undefined ? v : String(v));
 const num = (v) => (v === null || v === undefined ? v : Number(v));
+// Fecha y hora del pedido, mostrada en hora de la Ciudad de México.
+const formatoFechaHora = new Intl.DateTimeFormat('sv-SE', {
+  timeZone: 'America/Mexico_City',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+});
+const fechaHora = (v) => (v instanceof Date ? formatoFechaHora.format(v) : v);
+
 const fecha = (v) => {
   if (!v) return v;
   if (v instanceof Date) return v.toISOString().slice(0, 10);
@@ -132,7 +145,7 @@ const mapPedido = (r) => ({
   id: id(r.id),
   usuarioId: id(r.usuario_id),
   direccionId: id(r.direccion_id),
-  fecha: fecha(r.fecha),
+  fecha: fechaHora(r.fecha),
   subtotal: num(r.subtotal),
   total: num(r.total),
   estado: r.estado,
@@ -245,6 +258,8 @@ export const resolvers = protegerResolvers({
   // QUERY
   // ------------------------------------------------------------------
   Query: {
+    resumenVentas: (_, { periodo }) => resumenVentas(periodo),
+
     yo: async (_, __, ctx) => {
       const usuario = await findById('usuario', mapUsuario, ctx.usuario.id);
       return usuario && usuario.activo ? usuario : null;
@@ -808,10 +823,11 @@ export const resolvers = protegerResolvers({
         // No se modelan impuestos ni envio en esta practica: total = subtotal.
         const totalPedido = subtotalPedido;
 
+        // NOW() guarda fecha y hora exactas del pedido (para el resumen por hora)
         const pedidoResult = await client.query(
           `INSERT INTO pedido (usuario_id, direccion_id, fecha, subtotal, total, estado, transaccion_pago_id)
-           VALUES ($1, $2, $3, $4, $5, 'PENDIENTE', NULL) RETURNING *`,
-          [usuarioId, direccionId, hoy(), subtotalPedido, totalPedido]
+           VALUES ($1, $2, NOW(), $3, $4, 'PENDIENTE', NULL) RETURNING *`,
+          [usuarioId, direccionId, subtotalPedido, totalPedido]
         );
         const nuevoPedido = pedidoResult.rows[0];
 
