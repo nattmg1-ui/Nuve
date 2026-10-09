@@ -80,6 +80,29 @@
   color: var(--color-slate);
 }
 
+/* Pago con tarjeta (Mercado Pago) */
+
+.pago-tarjeta {
+  margin-bottom: 24px;
+}
+
+.pago-tarjeta #brick-tarjeta {
+  margin-bottom: 16px;
+}
+
+.pago-otro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  font: var(--text-body-sm);
+}
+
 /* Resultado */
 
 .pago-resultado {

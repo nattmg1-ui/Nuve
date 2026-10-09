@@ -67,7 +67,6 @@ try {
                   {p.estado === 'PENDIENTE' && (
                     <div class="panel-inline">
                       <a class="btn btn-primary btn-sm" href={`/pago/${p.id}`}>Pagar</a>
-                      <a class="btn btn-secondary btn-sm" href={`/pago/resultado?metodo=verificar&pedido=${p.id}`}>Ya pagué</a>
                       <form method="post" action="/api/pedido/cancelar">
                         <input type="hidden" name="pedidoId" value={p.id} />
                         <button class="btn btn-secondary btn-sm" type="submit">Cancelar</button>

@@ -5,11 +5,12 @@
 import 'dotenv/config';
 
 export const PAGOS = {
-  // A dónde regresa el cliente después de pagar (la tienda en Astro)
+  // A dónde regresa el cliente después de pagar con PayPal (la tienda en Astro)
   frontUrl: (process.env.FRONT_URL || 'http://localhost:5173').replace(/\/+$/, ''),
   moneda: 'MXN',
 
   mercadoPago: {
+    // Access Token de prueba (empieza con APP_USR-). Es secreto: solo en el backend.
     accessToken: process.env.MP_ACCESS_TOKEN || '',
     api: (process.env.MP_API || 'https://api.mercadopago.com').replace(/\/+$/, ''),
   },
@@ -21,9 +22,6 @@ export const PAGOS = {
     api: (process.env.PAYPAL_API || 'https://api-m.sandbox.paypal.com').replace(/\/+$/, ''),
   },
 };
-
-/** true si hay llave de Mercado Pago configurada */
-export const mercadoPagoConfigurado = () => Boolean(PAGOS.mercadoPago.accessToken);
 
 /** URL de la página de resultado del pago en la tienda. */
 export const urlResultado = (params) => `${PAGOS.frontUrl}/pago/resultado?${new URLSearchParams(params)}`;

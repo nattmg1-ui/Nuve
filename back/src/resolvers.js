@@ -19,7 +19,6 @@ import { guardarProductoCompleto } from './productos/servicio.js';
 import { resumenVentas } from './reportes/ventas.js';
 import { pedidoParaPagar, asegurarPedidoDelUsuario, registrarPago } from './pagos/servicio.js';
 import * as mercadoPago from './pagos/mercadopago.js';
-import { mercadoPagoConfigurado } from './pagos/config.js';
 import * as paypal from './pagos/paypal.js';
 
 const hoy = () => new Date().toISOString().slice(0, 10);
@@ -871,23 +870,30 @@ export const resolvers = protegerResolvers({
     actualizarPedido: (_, { id: tid, estado }) => cambiarEstadoPedido(tid, estado),
 
     // --- Pagos ---
+    // PayPal: redirección a la página de PayPal
     iniciarPago: async (_, { pedidoId, metodo }, ctx) => {
+      if (metodo !== 'PAYPAL') {
+        throw datosInvalidos('Mercado Pago se paga con tarjeta dentro de Nuvé (pagarConTarjeta).');
+      }
       const pedido = await pedidoParaPagar(ctx, pedidoId);
-      const url = metodo === 'PAYPAL' ? await paypal.crearOrden(pedido) : await mercadoPago.crearPreferencia(pedido);
-      return { url };
+      return { url: await paypal.crearOrden(pedido) };
     },
-    confirmarPagoMercadoPago: async (_, { pagoId }, ctx) => {
-      // Se le pregunta a Mercado Pago: no se confía en lo que venga en la URL
-      const pago = await mercadoPago.consultarPago(pagoId);
-      if (!pago.pedidoId) throw datosInvalidos('Ese pago no pertenece a ningún pedido de Nuvé.');
-      await asegurarPedidoDelUsuario(ctx, pago.pedidoId);
-      if (pago.resultado === 'APROBADO') {
-        await registrarPago({ pedidoId: pago.pedidoId, metodo: 'MERCADO_PAGO', transaccionId: pago.transaccionId, monto: pago.monto });
+    // Mercado Pago (Checkout API): el cobro se hace aquí mismo con el token de la tarjeta
+    pagarConTarjeta: async (_, { pedidoId, tarjeta }, ctx) => {
+      if (!tarjeta.token || !tarjeta.metodoPagoId || !['credit_card', 'debit_card'].includes(tarjeta.tipoPago)) {
+        throw datosInvalidos('Faltan datos de la tarjeta.');
+      }
+      if (!Number.isInteger(tarjeta.cuotas) || tarjeta.cuotas < 1) throw datosInvalidos('Número de pagos inválido.');
+
+      const pedido = await pedidoParaPagar(ctx, pedidoId);
+      const cobro = await mercadoPago.pagarConTarjeta(pedido, tarjeta);
+      if (cobro.resultado === 'APROBADO') {
+        await registrarPago({ pedidoId: pedido.id, metodo: 'MERCADO_PAGO', transaccionId: cobro.transaccionId, monto: cobro.monto });
       }
       return {
-        resultado: pago.resultado,
-        pedido: await findById('pedido', mapPedido, pago.pedidoId),
-        mensaje: mensajePago(pago.resultado, pago.pedidoId),
+        resultado: cobro.resultado,
+        pedido: await findById('pedido', mapPedido, pedido.id),
+        mensaje: cobro.mensaje ?? mensajePago(cobro.resultado, pedido.id),
       };
     },
     confirmarPagoPaypal: async (_, { ordenId }, ctx) => {
@@ -913,36 +919,6 @@ export const resolvers = protegerResolvers({
         resultado: cobro.resultado,
         pedido: await findById('pedido', mapPedido, orden.pedidoId),
         mensaje: mensajePago(cobro.resultado, orden.pedidoId),
-      };
-    },
-    verificarPagoPedido: async (_, { pedidoId }, ctx) => {
-      await asegurarPedidoDelUsuario(ctx, pedidoId);
-      const actual = await findById('pedido', mapPedido, pedidoId);
-      if (actual.estado !== 'PENDIENTE') {
-        const pagado = Boolean(actual.metodoPago) || ['PAGADO', 'ENVIADO', 'ENTREGADO'].includes(actual.estado);
-        return {
-          resultado: pagado ? 'APROBADO' : 'RECHAZADO',
-          pedido: actual,
-          mensaje: pagado
-            ? `El pedido #${actual.id} ya está pagado.`
-            : `El pedido #${actual.id} está ${actual.estado}, así que ya no se puede pagar.`,
-        };
-      }
-      const pago = mercadoPagoConfigurado() ? await mercadoPago.buscarPagoDePedido(pedidoId) : null;
-      if (!pago) {
-        return {
-          resultado: 'RECHAZADO',
-          pedido: actual,
-          mensaje: `Todavía no encontramos ningún pago del pedido #${actual.id}. Si acabas de pagar, espera unos segundos y vuelve a revisar.`,
-        };
-      }
-      if (pago.resultado === 'APROBADO') {
-        await registrarPago({ pedidoId, metodo: 'MERCADO_PAGO', transaccionId: pago.transaccionId, monto: pago.monto });
-      }
-      return {
-        resultado: pago.resultado,
-        pedido: await findById('pedido', mapPedido, pedidoId),
-        mensaje: mensajePago(pago.resultado, pedidoId),
       };
     },
     eliminarPedido: async (_, { id: tid }) => {

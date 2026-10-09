@@ -1,9 +1,11 @@
 ---
-// Pantalla "Elige cómo pagar" de un pedido PENDIENTE.
-// Al elegir, /api/pago/iniciar crea el cobro en el backend y manda al cliente
-// a la página de Mercado Pago o PayPal.
+// Pantalla de pago de un pedido PENDIENTE.
+//   - Tarjeta (Mercado Pago, Checkout API): el formulario está aquí mismo y el
+//     cobro se hace sin salir de Nuvé (componente PagoTarjeta, isla de React).
+//   - PayPal: botón que manda al cliente a la página de PayPal.
 import Layout from '../../layouts/Layout.astro';
 import Avisos from '../../components/Avisos.astro';
+import PagoTarjeta from '../../components/PagoTarjeta';
 import '../../components/Panel.css';
 import '../../components/Pago.css';
 import { gql } from '../../lib/graphql';
@@ -16,24 +18,12 @@ interface Pedido {
   detalles: { cantidad: number; subtotal: number; variante: { tono: string | null; producto: { nombre: string } } }[];
 }
 
-const { id } = Astro.params;
+// Llave PÚBLICA de Mercado Pago (no es secreta: solo sirve para mostrar el formulario)
+const PUBLIC_KEY: string =
+  process.env.PUBLIC_MP_PUBLIC_KEY ?? (import.meta.env.PUBLIC_MP_PUBLIC_KEY as string | undefined) ?? '';
 
-// Si el cliente ya pagó en Mercado Pago pero no regresó a la tienda, aquí se
-// detecta el pago y se le manda directo al resultado.
-if (id && /^\d+$/.test(id)) {
-  try {
-    const { verificarPagoPedido } = await gql<{ verificarPagoPedido: { resultado: string } }>(
-      `mutation ($pedidoId: ID!) { verificarPagoPedido(pedidoId: $pedidoId) { resultado } }`,
-      { pedidoId: id },
-      Astro.locals.accessToken
-    );
-    if (verificarPagoPedido.resultado === 'APROBADO') {
-      return Astro.redirect(`/pago/resultado?metodo=verificar&pedido=${id}`);
-    }
-  } catch {
-    /* si falla la revisión, se muestra la página normal */
-  }
-}
+const { id } = Astro.params;
+const usuario = Astro.locals.usuario!;
 
 let pedido: Pedido | null = null;
 let error: string | null = null;
@@ -60,7 +50,7 @@ const pesos = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN
 
 <Layout titulo="Pagar pedido — Nuvé">
   <div class="pago">
-    <h2 class="panel-titulo">Elige cómo pagar</h2>
+    <h2 class="panel-titulo">Pagar pedido</h2>
     <Avisos />
     {error && <div class="aviso aviso--error" role="alert">{error}</div>}
 
@@ -88,26 +78,19 @@ const pesos = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN
           </section>
 
           {pedido.estado === 'PENDIENTE' ? (
-            <form method="post" action="/api/pago/iniciar" id="form-pago">
-              <input type="hidden" name="pedidoId" value={pedido.id} />
-              <div class="pago-metodos">
-                <button class="pago-metodo" type="submit" name="metodo" value="MERCADO_PAGO">
-                  <span class="pago-metodo__nombre">Mercado Pago</span>
-                  <span class="pago-metodo__detalle">Tarjeta de crédito, débito o saldo en tu cuenta</span>
-                </button>
-                <button class="pago-metodo" type="submit" name="metodo" value="PAYPAL">
-                  <span class="pago-metodo__nombre">PayPal</span>
-                  <span class="pago-metodo__detalle">Con tu cuenta de PayPal o tarjeta</span>
-                </button>
-              </div>
+            <>
+              <h3 class="panel-subtitulo">Paga con tarjeta</h3>
               <p class="pago-nota">
-                Te llevaremos a la página segura del servicio que elijas. Nuvé no guarda los datos de tu tarjeta.
+                Pago seguro con Mercado Pago. Los datos de tu tarjeta los procesa Mercado Pago; Nuvé no los guarda.
               </p>
-              <p class="pago-nota">
-                ¿Ya pagaste con Mercado Pago y no regresaste a la tienda?
-                <a href={`/pago/resultado?metodo=verificar&pedido=${pedido.id}`}>Revisar mi pago</a>
-              </p>
-            </form>
+              <PagoTarjeta
+                client:only="react"
+                pedidoId={pedido.id}
+                total={pedido.total}
+                publicKey={PUBLIC_KEY}
+                email={usuario.correo}
+              />
+            </>
           ) : (
             <div class="aviso" role="status">
               Este pedido ya no está pendiente de pago (está <strong>{pedido.estado}</strong>).
@@ -120,21 +103,3 @@ const pesos = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN
     }
   </div>
 </Layout>
-
-<script>
-  // Evita doble clic mientras se crea el cobro.
-  // (El submitter se copia a un campo oculto porque un botón deshabilitado no se envía.)
-  const form = document.getElementById('form-pago') as HTMLFormElement | null;
-  form?.addEventListener('submit', (evento) => {
-    const boton = (evento as SubmitEvent).submitter as HTMLButtonElement | null;
-    if (boton) {
-      const campo = document.createElement('input');
-      campo.type = 'hidden';
-      campo.name = boton.name;
-      campo.value = boton.value;
-      form.appendChild(campo);
-      boton.querySelector('.pago-metodo__detalle')!.textContent = 'Conectando…';
-    }
-    form.querySelectorAll('button').forEach((b) => (b.disabled = true));
-  });
-</script>

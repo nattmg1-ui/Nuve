@@ -371,6 +371,20 @@ export const typeDefs = `#graphql
     url: String!
   }
 
+  """Datos que entrega el formulario de tarjeta de Mercado Pago (nunca el número de tarjeta)."""
+  input TarjetaInput {
+    """Token de un solo uso que genera Mercado Pago con los datos de la tarjeta"""
+    token: String!
+    """Marca de la tarjeta: visa, master, amex, debvisa…"""
+    metodoPagoId: String!
+    """credit_card o debit_card"""
+    tipoPago: String!
+    cuotas: Int!
+    email: String!
+    tipoIdentificacion: String
+    numeroIdentificacion: String
+  }
+
   type ConfirmacionPago {
     resultado: ResultadoPago!
     pedido: Pedido
@@ -562,14 +576,12 @@ export const typeDefs = `#graphql
     eliminarPedido(id: ID!): Boolean!
 
     # --- Pagos: el monto siempre es el total del pedido guardado en la base ---
-    """Crea el cobro en Mercado Pago o PayPal y devuelve el link para pagar."""
+    """PayPal: crea la orden y devuelve el link de PayPal para pagar."""
     iniciarPago(pedidoId: ID!, metodo: MetodoPago!): InicioPago!
-    """Al regresar de Mercado Pago: consulta el pago y, si se aprobó, marca el pedido como PAGADO."""
-    confirmarPagoMercadoPago(pagoId: String!): ConfirmacionPago!
+    """Mercado Pago (Checkout API): cobra con el token de la tarjeta y, si se aprueba, marca el pedido como PAGADO."""
+    pagarConTarjeta(pedidoId: ID!, tarjeta: TarjetaInput!): ConfirmacionPago!
     """Al regresar de PayPal: cobra la orden aprobada y, si se completó, marca el pedido como PAGADO."""
     confirmarPagoPaypal(ordenId: String!): ConfirmacionPago!
-    """Revisa en Mercado Pago si el pedido ya se pagó (por si el cliente no regresó a la tienda)."""
-    verificarPagoPedido(pedidoId: ID!): ConfirmacionPago!
 
     # --- DetallePedido ---
     crearDetallePedido(datos: DetallePedidoInput!): DetallePedido!
