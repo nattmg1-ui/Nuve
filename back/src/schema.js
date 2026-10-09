@@ -17,6 +17,19 @@ export const typeDefs = `#graphql
     CANCELADO
   }
 
+  """Servicio con el que se pagó un pedido."""
+  enum MetodoPago {
+    MERCADO_PAGO
+    PAYPAL
+  }
+
+  """Resultado de un pago al regresar de Mercado Pago o PayPal."""
+  enum ResultadoPago {
+    APROBADO
+    PENDIENTE
+    RECHAZADO
+  }
+
   """Estado de un carrito de compras."""
   enum EstadoCarrito {
     ACTIVO
@@ -185,6 +198,10 @@ export const typeDefs = `#graphql
     """Estados a los que puede pasar desde el actual (vacío si ya es final)."""
     estadosSiguientes: [StatusPedido!]!
     transaccionPagoId: String
+    """Con qué se pagó (vacío si aún no se paga)."""
+    metodoPago: MetodoPago
+    """Fecha y hora del pago en hora de la Ciudad de México (AAAA-MM-DD HH:MM)."""
+    fechaPago: String
     detalles: [DetallePedido!]!
   }
 
@@ -343,6 +360,21 @@ export const typeDefs = `#graphql
     varianteId: ID!
     cantidad: Int!
     precioUnitario: Float
+  }
+
+  # ------------------------------------------------------------------
+  # PAGOS (Mercado Pago y PayPal, por redirección)
+  # ------------------------------------------------------------------
+
+  """Link de la página de Mercado Pago o PayPal a donde se manda al cliente a pagar."""
+  type InicioPago {
+    url: String!
+  }
+
+  type ConfirmacionPago {
+    resultado: ResultadoPago!
+    pedido: Pedido
+    mensaje: String!
   }
 
   # ------------------------------------------------------------------
@@ -525,8 +557,17 @@ export const typeDefs = `#graphql
     # y calcula subtotal y total del pedido.
     crearPedido(datos: PedidoInput!): Pedido!
     cancelarPedido(id: ID!): Pedido
+
     actualizarPedido(id: ID!, estado: StatusPedido!): Pedido
     eliminarPedido(id: ID!): Boolean!
+
+    # --- Pagos: el monto siempre es el total del pedido guardado en la base ---
+    """Crea el cobro en Mercado Pago o PayPal y devuelve el link para pagar."""
+    iniciarPago(pedidoId: ID!, metodo: MetodoPago!): InicioPago!
+    """Al regresar de Mercado Pago: consulta el pago y, si se aprobó, marca el pedido como PAGADO."""
+    confirmarPagoMercadoPago(pagoId: String!): ConfirmacionPago!
+    """Al regresar de PayPal: cobra la orden aprobada y, si se completó, marca el pedido como PAGADO."""
+    confirmarPagoPaypal(ordenId: String!): ConfirmacionPago!
 
     # --- DetallePedido ---
     crearDetallePedido(datos: DetallePedidoInput!): DetallePedido!

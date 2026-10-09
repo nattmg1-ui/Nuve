@@ -17,6 +17,9 @@ import { validarDireccion } from './direcciones/validacion.js';
 import { validarProducto } from './productos/validacion.js';
 import { guardarProductoCompleto } from './productos/servicio.js';
 import { resumenVentas } from './reportes/ventas.js';
+import { pedidoParaPagar, asegurarPedidoDelUsuario, registrarPago } from './pagos/servicio.js';
+import * as mercadoPago from './pagos/mercadopago.js';
+import * as paypal from './pagos/paypal.js';
 
 const hoy = () => new Date().toISOString().slice(0, 10);
 
@@ -150,6 +153,8 @@ const mapPedido = (r) => ({
   total: num(r.total),
   estado: r.estado,
   transaccionPagoId: r.transaccion_pago_id,
+  metodoPago: r.metodo_pago ?? null,
+  fechaPago: r.fecha_pago ? fechaHora(r.fecha_pago) : null,
 });
 
 const mapDetallePedido = (r) => ({
@@ -251,6 +256,13 @@ async function cambiarEstadoPedido(pedidoId, nuevoEstado) {
   } finally {
     client.release();
   }
+}
+
+// Texto que ve el cliente al regresar de pagar
+function mensajePago(resultado, pedidoId) {
+  if (resultado === 'APROBADO') return `¡Listo! Recibimos el pago del pedido #${pedidoId}. Ya lo estamos preparando.`;
+  if (resultado === 'PENDIENTE') return `El pago del pedido #${pedidoId} está en revisión. Te avisaremos cuando se confirme.`;
+  return `El pago del pedido #${pedidoId} no se completó. No se hizo ningún cobro; puedes intentarlo de nuevo.`;
 }
 
 export const resolvers = protegerResolvers({
@@ -823,7 +835,6 @@ export const resolvers = protegerResolvers({
         // No se modelan impuestos ni envio en esta practica: total = subtotal.
         const totalPedido = subtotalPedido;
 
-        // NOW() guarda fecha y hora exactas del pedido (para el resumen por hora)
         const pedidoResult = await client.query(
           `INSERT INTO pedido (usuario_id, direccion_id, fecha, subtotal, total, estado, transaccion_pago_id)
            VALUES ($1, $2, NOW(), $3, $4, 'PENDIENTE', NULL) RETURNING *`,
@@ -857,6 +868,52 @@ export const resolvers = protegerResolvers({
       return cambiarEstadoPedido(tid, 'CANCELADO');
     },
     actualizarPedido: (_, { id: tid, estado }) => cambiarEstadoPedido(tid, estado),
+
+    // --- Pagos ---
+    iniciarPago: async (_, { pedidoId, metodo }, ctx) => {
+      const pedido = await pedidoParaPagar(ctx, pedidoId);
+      const url = metodo === 'PAYPAL' ? await paypal.crearOrden(pedido) : await mercadoPago.crearPreferencia(pedido);
+      return { url };
+    },
+    confirmarPagoMercadoPago: async (_, { pagoId }, ctx) => {
+      // Se le pregunta a Mercado Pago: no se confía en lo que venga en la URL
+      const pago = await mercadoPago.consultarPago(pagoId);
+      if (!pago.pedidoId) throw datosInvalidos('Ese pago no pertenece a ningún pedido de Nuvé.');
+      await asegurarPedidoDelUsuario(ctx, pago.pedidoId);
+      if (pago.resultado === 'APROBADO') {
+        await registrarPago({ pedidoId: pago.pedidoId, metodo: 'MERCADO_PAGO', transaccionId: pago.transaccionId, monto: pago.monto });
+      }
+      return {
+        resultado: pago.resultado,
+        pedido: await findById('pedido', mapPedido, pago.pedidoId),
+        mensaje: mensajePago(pago.resultado, pago.pedidoId),
+      };
+    },
+    confirmarPagoPaypal: async (_, { ordenId }, ctx) => {
+      const orden = await paypal.pedidoDeOrden(ordenId);
+      if (!orden.pedidoId) throw datosInvalidos('Esa orden no pertenece a ningún pedido de Nuvé.');
+      await asegurarPedidoDelUsuario(ctx, orden.pedidoId);
+
+      // Si el pedido ya no está pendiente (por ejemplo, se canceló) NO se cobra
+      const actual = await findById('pedido', mapPedido, orden.pedidoId);
+      if (actual.estado !== 'PENDIENTE' && orden.estado !== 'COMPLETED') {
+        return {
+          resultado: 'RECHAZADO',
+          pedido: actual,
+          mensaje: `El pedido #${actual.id} está ${actual.estado}, así que no se hizo ningún cobro.`,
+        };
+      }
+
+      const cobro = await paypal.capturarOrden(ordenId);
+      if (cobro.resultado === 'APROBADO') {
+        await registrarPago({ pedidoId: orden.pedidoId, metodo: 'PAYPAL', transaccionId: cobro.transaccionId, monto: cobro.monto });
+      }
+      return {
+        resultado: cobro.resultado,
+        pedido: await findById('pedido', mapPedido, orden.pedidoId),
+        mensaje: mensajePago(cobro.resultado, orden.pedidoId),
+      };
+    },
     eliminarPedido: async (_, { id: tid }) => {
       const { rowCount } = await query('DELETE FROM pedido WHERE id = $1', [tid]);
       return rowCount > 0;

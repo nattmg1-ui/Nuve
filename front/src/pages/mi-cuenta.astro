@@ -9,6 +9,7 @@ interface Pedido {
   fecha: string;
   total: number;
   estado: string;
+  metodoPago: string | null;
   detalles: { cantidad: number; subtotal: number; variante: { tono: string | null; producto: { nombre: string } } }[];
 }
 
@@ -18,7 +19,7 @@ let error: string | null = null;
 try {
   pedidos = (
     await gql<{ pedidos: Pedido[] }>(
-      `query { pedidos { id fecha total estado detalles { cantidad subtotal variante { tono producto { nombre } } } } }`,
+      `query { pedidos { id fecha total estado metodoPago detalles { cantidad subtotal variante { tono producto { nombre } } } } }`,
       {},
       Astro.locals.accessToken
     )
@@ -58,13 +59,19 @@ try {
                   ))}
                 </td>
                 <td>${p.total.toFixed(2)}</td>
-                <td><span class="etiqueta">{p.estado}</span></td>
+                <td>
+                  <span class="etiqueta">{p.estado}</span>
+                  {p.metodoPago && <div class="panel-pago">{p.metodoPago === 'PAYPAL' ? 'PayPal' : 'Mercado Pago'}</div>}
+                </td>
                 <td>
                   {p.estado === 'PENDIENTE' && (
+                    <div class="panel-inline">
+                    <a class="btn btn-primary btn-sm" href={`/pago/${p.id}`}>Pagar</a>
                     <form method="post" action="/api/pedido/cancelar">
                       <input type="hidden" name="pedidoId" value={p.id} />
                       <button class="btn btn-secondary btn-sm" type="submit">Cancelar</button>
                     </form>
+                    </div>
                   )}
                 </td>
               </tr>

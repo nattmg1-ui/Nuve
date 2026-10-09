@@ -16,6 +16,7 @@
 CREATE TYPE estado_carrito AS ENUM ('ACTIVO', 'COMPLETADO', 'ABANDONADO');
 
 CREATE TYPE status_pedido AS ENUM ('PENDIENTE', 'PAGADO', 'ENVIADO', 'ENTREGADO', 'CANCELADO');
+CREATE TYPE metodo_pago AS ENUM ('MERCADO_PAGO', 'PAYPAL');
 
 -- ------------------------------------------------------------------
 -- TABLAS
@@ -141,7 +142,9 @@ CREATE TABLE pedido (
   subtotal             DECIMAL(10,2) NOT NULL,
   total                DECIMAL(10,2) NOT NULL,
   estado               status_pedido NOT NULL DEFAULT 'PENDIENTE',
-  transaccion_pago_id  VARCHAR(60)
+  transaccion_pago_id  VARCHAR(60),
+  metodo_pago          metodo_pago,
+  fecha_pago           TIMESTAMPTZ
 );
 
 CREATE TABLE detalle_pedido (
@@ -176,6 +179,7 @@ CREATE INDEX idx_imagen_producto ON imagen_producto(producto_id);
 CREATE INDEX idx_detalle_carrito_carrito ON detalle_carrito(carrito_id);
 CREATE INDEX idx_detalle_pedido_pedido ON detalle_pedido(pedido_id);
 CREATE INDEX idx_pedido_fecha ON pedido(fecha);
+CREATE UNIQUE INDEX idx_pedido_pago_unico ON pedido (metodo_pago, transaccion_pago_id) WHERE metodo_pago IS NOT NULL;
 CREATE INDEX idx_favorito_usuario ON favorito(usuario_id);
 CREATE INDEX idx_resena_producto ON resena(producto_id);
 CREATE INDEX idx_refresh_usuario ON refresh_token(usuario_id);
