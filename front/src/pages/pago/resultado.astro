@@ -1,0 +1,150 @@
+---
+// A esta página regresa el cliente desde Mercado Pago o PayPal.
+// Lo que viene en la URL NO se cree tal cual: el backend le pregunta al servicio
+// de pago si de verdad se cobró, y solo entonces marca el pedido como PAGADO.
+//
+//   Mercado Pago: /pago/resultado?metodo=mercadopago&pedido=12&payment_id=123...
+//   PayPal:       /pago/resultado?metodo=paypal&pedido=12&token=ORDEN&PayerID=...
+//   PayPal (canceló): ...&cancelado=1
+import Layout from '../../layouts/Layout.astro';
+import '../../components/Panel.css';
+import '../../components/Pago.css';
+import { gql } from '../../lib/graphql';
+
+type Resultado = 'APROBADO' | 'PENDIENTE' | 'RECHAZADO';
+interface Confirmacion {
+  resultado: Resultado;
+  mensaje: string;
+  pedido: { id: string; total: number; estado: string; metodoPago: string | null } | null;
+}
+
+const CAMPOS = 'resultado mensaje pedido { id total estado metodoPago }';
+const p = Astro.url.searchParams;
+const metodo = p.get('metodo');
+const pedidoParam = /^\d+$/.test(p.get('pedido') ?? '') ? p.get('pedido') : null;
+
+let confirmacion: Confirmacion | null = null;
+let error: string | null = null;
+
+try {
+  if (metodo === 'mercadopago') {
+    const pagoId = p.get('payment_id') ?? p.get('collection_id');
+    if (pagoId && /^\d+$/.test(pagoId)) {
+      confirmacion = (
+        await gql<{ confirmarPagoMercadoPago: Confirmacion }>(
+          `mutation ($pagoId: String!) { confirmarPagoMercadoPago(pagoId: $pagoId) { ${CAMPOS} } }`,
+          { pagoId },
+          Astro.locals.accessToken
+        )
+      ).confirmarPagoMercadoPago;
+    }
+  } else if (metodo === 'paypal') {
+    const ordenId = p.get('token');
+    if (ordenId && p.get('cancelado') !== '1') {
+      confirmacion = (
+        await gql<{ confirmarPagoPaypal: Confirmacion }>(
+          `mutation ($ordenId: String!) { confirmarPagoPaypal(ordenId: $ordenId) { ${CAMPOS} } }`,
+          { ordenId },
+          Astro.locals.accessToken
+        )
+      ).confirmarPagoPaypal;
+    }
+  } else {
+    error = 'No reconocemos este resultado de pago.';
+  }
+} catch (e) {
+  error = e instanceof Error ? e.message : 'No pudimos confirmar el pago.';
+}
+
+// Regresó sin pagar (canceló o cerró la ventana de pago)
+if (!confirmacion && !error) {
+  confirmacion = {
+    resultado: 'RECHAZADO',
+    mensaje: `No se completó el pago${pedidoParam ? ` del pedido #${pedidoParam}` : ''}. No se hizo ningún cobro; puedes intentarlo de nuevo.`,
+    pedido: null,
+  };
+}
+
+const TEXTOS: Record<Resultado, { estado: string; titulo: string; clase: string }> = {
+  APROBADO: { estado: 'Pago aprobado', titulo: '¡Gracias por tu compra!', clase: 'pago-resultado--aprobado' },
+  PENDIENTE: { estado: 'Pago en revisión', titulo: 'Estamos confirmando tu pago', clase: 'pago-resultado--pendiente' },
+  RECHAZADO: { estado: 'Pago no completado', titulo: 'No se realizó el cobro', clase: 'pago-resultado--rechazado' },
+};
+
+const pedidoId = confirmacion?.pedido?.id ?? pedidoParam;
+// Se puede reintentar si el pedido sigue pendiente (o si no sabemos su estado)
+const puedeReintentar =
+  pedidoId && confirmacion?.resultado !== 'APROBADO' && (confirmacion?.pedido?.estado ?? 'PENDIENTE') === 'PENDIENTE';
+const NOMBRE_METODO: Record<string, string> = { MERCADO_PAGO: 'Mercado Pago', PAYPAL: 'PayPal' };
+const pesos = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
+const textos = confirmacion ? TEXTOS[confirmacion.resultado] : null;
+---
+
+<Layout titulo="Resultado del pago — Nuvé">
+  <div class="pago">
+    {
+      error && (
+        <section class="pago-resultado pago-resultado--rechazado" role="alert">
+          <p class="pago-resultado__estado">No pudimos confirmar el pago</p>
+          <h2>Algo salió mal</h2>
+          <p>{error}</p>
+          <p class="pago-nota">
+            Si ya se hizo un cargo, no lo vuelvas a intentar: revisa el estado en "Mis pedidos" o contáctanos.
+          </p>
+          <div class="pago-acciones">
+            <a class="btn btn-primary" href="/mi-cuenta">Ver mis pedidos</a>
+          </div>
+        </section>
+      )
+    }
+
+    {
+      confirmacion && textos && (
+        <section class:list={['pago-resultado', textos.clase]} role="status">
+          <p class="pago-resultado__estado">{textos.estado}</p>
+          <h2>{textos.titulo}</h2>
+          <p>{confirmacion.mensaje}</p>
+
+          {confirmacion.pedido && (
+            <div class="pago-resumen">
+              <div class="pago-resumen__fila">
+                <span>Pedido</span>
+                <span>#{confirmacion.pedido.id}</span>
+              </div>
+              <div class="pago-resumen__fila">
+                <span>Total</span>
+                <span>{pesos.format(confirmacion.pedido.total)}</span>
+              </div>
+              <div class="pago-resumen__fila">
+                <span>Estado</span>
+                <span class="etiqueta">{confirmacion.pedido.estado}</span>
+              </div>
+              {confirmacion.pedido.metodoPago && (
+                <div class="pago-resumen__fila">
+                  <span>Pagado con</span>
+                  <span>{NOMBRE_METODO[confirmacion.pedido.metodoPago] ?? confirmacion.pedido.metodoPago}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div class="pago-acciones">
+            {puedeReintentar && (
+              <a class="btn btn-primary" href={`/pago/${pedidoId}`}>
+                Intentar de nuevo
+              </a>
+            )}
+            <a class:list={['btn', puedeReintentar ? 'btn-secondary' : 'btn-primary']} href="/mi-cuenta">
+              Ver mis pedidos
+            </a>
+            {confirmacion.resultado === 'APROBADO' && (
+              <a class="btn btn-secondary" href="/">
+                Seguir comprando
+              </a>
+            )}
+          </div>
+        </section>
+      )
+    }
+  </div>
+</Layout>

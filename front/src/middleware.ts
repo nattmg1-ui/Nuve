@@ -32,6 +32,8 @@ const REGLAS: { prefijo: string; roles?: string[] }[] = [
   { prefijo: '/api/checkout' },
   { prefijo: '/api/direccion' },
   { prefijo: '/api/pedido' },
+  { prefijo: '/pago' },
+  { prefijo: '/api/pago' },
 ];
 
 const coincide = (ruta: string, prefijo: string) => ruta === prefijo || ruta.startsWith(prefijo + '/');

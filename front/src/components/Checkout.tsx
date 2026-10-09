@@ -68,7 +68,8 @@ export default function Checkout({ direcciones: iniciales }: { direcciones: Dire
         items: items.map((i) => ({ varianteId: i.varianteId, cantidad: i.cantidad })),
       });
       vaciarCarrito();
-      window.location.href = `/mi-cuenta?ok=${encodeURIComponent(`Pedido #${pedidoId} registrado. ¡Gracias por tu compra!`)}`;
+      // El pedido queda PENDIENTE: ahora el cliente elige cómo pagarlo
+      window.location.href = `/pago/${pedidoId}`;
     } catch (err) {
       setError((err as Error).message);
       setEnviando(false);

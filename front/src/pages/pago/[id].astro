@@ -1,0 +1,118 @@
+---
+// Pantalla "Elige cómo pagar" de un pedido PENDIENTE.
+// Al elegir, /api/pago/iniciar crea el cobro en el backend y manda al cliente
+// a la página de Mercado Pago o PayPal.
+import Layout from '../../layouts/Layout.astro';
+import Avisos from '../../components/Avisos.astro';
+import '../../components/Panel.css';
+import '../../components/Pago.css';
+import { gql } from '../../lib/graphql';
+
+interface Pedido {
+  id: string;
+  fecha: string;
+  total: number;
+  estado: string;
+  detalles: { cantidad: number; subtotal: number; variante: { tono: string | null; producto: { nombre: string } } }[];
+}
+
+const { id } = Astro.params;
+let pedido: Pedido | null = null;
+let error: string | null = null;
+try {
+  pedido = (
+    await gql<{ pedido: Pedido | null }>(
+      `query ($id: ID!) {
+        pedido(id: $id) {
+          id fecha total estado
+          detalles { cantidad subtotal variante { tono producto { nombre } } }
+        }
+      }`,
+      { id },
+      Astro.locals.accessToken
+    )
+  ).pedido;
+  if (!pedido) error = 'No encontramos ese pedido.';
+} catch (e) {
+  error = e instanceof Error ? e.message : 'Error desconocido';
+}
+
+const pesos = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
+---
+
+<Layout titulo="Pagar pedido — Nuvé">
+  <div class="pago">
+    <h2 class="panel-titulo">Elige cómo pagar</h2>
+    <Avisos />
+    {error && <div class="aviso aviso--error" role="alert">{error}</div>}
+
+    {
+      pedido && (
+        <>
+          <section class="pago-resumen" aria-label="Resumen del pedido">
+            <div class="pago-resumen__fila">
+              <span>Pedido #{pedido.id}</span>
+              <span>{pedido.fecha}</span>
+            </div>
+            {pedido.detalles.map((d) => (
+              <div class="pago-resumen__fila">
+                <span>
+                  {d.cantidad} × {d.variante.producto.nombre}
+                  {d.variante.tono ? ` (${d.variante.tono})` : ''}
+                </span>
+                <span>{pesos.format(d.subtotal)}</span>
+              </div>
+            ))}
+            <div class="pago-resumen__fila pago-resumen__total">
+              <span>Total</span>
+              <span>{pesos.format(pedido.total)}</span>
+            </div>
+          </section>
+
+          {pedido.estado === 'PENDIENTE' ? (
+            <form method="post" action="/api/pago/iniciar" id="form-pago">
+              <input type="hidden" name="pedidoId" value={pedido.id} />
+              <div class="pago-metodos">
+                <button class="pago-metodo" type="submit" name="metodo" value="MERCADO_PAGO">
+                  <span class="pago-metodo__nombre">Mercado Pago</span>
+                  <span class="pago-metodo__detalle">Tarjeta de crédito, débito o saldo en tu cuenta</span>
+                </button>
+                <button class="pago-metodo" type="submit" name="metodo" value="PAYPAL">
+                  <span class="pago-metodo__nombre">PayPal</span>
+                  <span class="pago-metodo__detalle">Con tu cuenta de PayPal o tarjeta</span>
+                </button>
+              </div>
+              <p class="pago-nota">
+                Te llevaremos a la página segura del servicio que elijas. Nuvé no guarda los datos de tu tarjeta.
+              </p>
+            </form>
+          ) : (
+            <div class="aviso" role="status">
+              Este pedido ya no está pendiente de pago (está <strong>{pedido.estado}</strong>).
+            </div>
+          )}
+
+          <p><a class="btn btn-secondary" href="/mi-cuenta">Ver mis pedidos</a></p>
+        </>
+      )
+    }
+  </div>
+</Layout>
+
+<script>
+  // Evita doble clic mientras se crea el cobro.
+  // (El botón elegido se copia a un campo oculto porque un botón deshabilitado no se envía.)
+  const form = document.getElementById('form-pago') as HTMLFormElement | null;
+  form?.addEventListener('submit', (evento) => {
+    const boton = (evento as SubmitEvent).submitter as HTMLButtonElement | null;
+    if (boton) {
+      const campo = document.createElement('input');
+      campo.type = 'hidden';
+      campo.name = boton.name;
+      campo.value = boton.value;
+      form.appendChild(campo);
+      boton.querySelector('.pago-metodo__detalle')!.textContent = 'Conectando…';
+    }
+    form.querySelectorAll('button').forEach((b) => (b.disabled = true));
+  });
+</script>
