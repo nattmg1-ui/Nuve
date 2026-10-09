@@ -19,6 +19,7 @@ import { guardarProductoCompleto } from './productos/servicio.js';
 import { resumenVentas } from './reportes/ventas.js';
 import { pedidoParaPagar, asegurarPedidoDelUsuario, registrarPago } from './pagos/servicio.js';
 import * as mercadoPago from './pagos/mercadopago.js';
+import { mercadoPagoConfigurado } from './pagos/config.js';
 import * as paypal from './pagos/paypal.js';
 
 const hoy = () => new Date().toISOString().slice(0, 10);
@@ -912,6 +913,36 @@ export const resolvers = protegerResolvers({
         resultado: cobro.resultado,
         pedido: await findById('pedido', mapPedido, orden.pedidoId),
         mensaje: mensajePago(cobro.resultado, orden.pedidoId),
+      };
+    },
+    verificarPagoPedido: async (_, { pedidoId }, ctx) => {
+      await asegurarPedidoDelUsuario(ctx, pedidoId);
+      const actual = await findById('pedido', mapPedido, pedidoId);
+      if (actual.estado !== 'PENDIENTE') {
+        const pagado = Boolean(actual.metodoPago) || ['PAGADO', 'ENVIADO', 'ENTREGADO'].includes(actual.estado);
+        return {
+          resultado: pagado ? 'APROBADO' : 'RECHAZADO',
+          pedido: actual,
+          mensaje: pagado
+            ? `El pedido #${actual.id} ya está pagado.`
+            : `El pedido #${actual.id} está ${actual.estado}, así que ya no se puede pagar.`,
+        };
+      }
+      const pago = mercadoPagoConfigurado() ? await mercadoPago.buscarPagoDePedido(pedidoId) : null;
+      if (!pago) {
+        return {
+          resultado: 'RECHAZADO',
+          pedido: actual,
+          mensaje: `Todavía no encontramos ningún pago del pedido #${actual.id}. Si acabas de pagar, espera unos segundos y vuelve a revisar.`,
+        };
+      }
+      if (pago.resultado === 'APROBADO') {
+        await registrarPago({ pedidoId, metodo: 'MERCADO_PAGO', transaccionId: pago.transaccionId, monto: pago.monto });
+      }
+      return {
+        resultado: pago.resultado,
+        pedido: await findById('pedido', mapPedido, pedidoId),
+        mensaje: mensajePago(pago.resultado, pedidoId),
       };
     },
     eliminarPedido: async (_, { id: tid }) => {

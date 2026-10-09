@@ -68,6 +68,24 @@ export async function crearPreferencia(pedido) {
 }
 
 /**
+ * Busca en Mercado Pago los pagos de un pedido (por su external_reference).
+ * Sirve cuando el cliente pagó pero no regresó a la tienda: así el pedido se
+ * puede marcar como pagado después. Devuelve el pago aprobado si existe; si no,
+ * el más reciente; o null si nunca se intentó pagar con Mercado Pago.
+ */
+export async function buscarPagoDePedido(pedidoId) {
+  const params = new URLSearchParams({
+    external_reference: String(pedidoId),
+    sort: 'date_created',
+    criteria: 'desc',
+    limit: '20',
+  });
+  const { results = [] } = await llamarMP(`/v1/payments/search?${params}`);
+  const pago = results.find((p) => p.status === 'approved') ?? results[0];
+  return pago ? consultarPago(pago.id) : null;
+}
+
+/**
  * Consulta un pago en Mercado Pago. Devuelve el pedido al que pertenece,
  * el resultado (APROBADO, PENDIENTE o RECHAZADO), el monto y su id.
  */

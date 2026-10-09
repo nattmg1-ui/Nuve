@@ -568,6 +568,8 @@ export const typeDefs = `#graphql
     confirmarPagoMercadoPago(pagoId: String!): ConfirmacionPago!
     """Al regresar de PayPal: cobra la orden aprobada y, si se completó, marca el pedido como PAGADO."""
     confirmarPagoPaypal(ordenId: String!): ConfirmacionPago!
+    """Revisa en Mercado Pago si el pedido ya se pagó (por si el cliente no regresó a la tienda)."""
+    verificarPagoPedido(pedidoId: ID!): ConfirmacionPago!
 
     # --- DetallePedido ---
     crearDetallePedido(datos: DetallePedidoInput!): DetallePedido!

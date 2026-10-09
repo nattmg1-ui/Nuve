@@ -22,5 +22,8 @@ export const PAGOS = {
   },
 };
 
+/** true si hay llave de Mercado Pago configurada */
+export const mercadoPagoConfigurado = () => Boolean(PAGOS.mercadoPago.accessToken);
+
 /** URL de la página de resultado del pago en la tienda. */
 export const urlResultado = (params) => `${PAGOS.frontUrl}/pago/resultado?${new URLSearchParams(params)}`;

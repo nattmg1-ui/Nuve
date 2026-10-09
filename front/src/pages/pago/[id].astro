@@ -17,6 +17,24 @@ interface Pedido {
 }
 
 const { id } = Astro.params;
+
+// Si el cliente ya pagó en Mercado Pago pero no regresó a la tienda, aquí se
+// detecta el pago y se le manda directo al resultado.
+if (id && /^\d+$/.test(id)) {
+  try {
+    const { verificarPagoPedido } = await gql<{ verificarPagoPedido: { resultado: string } }>(
+      `mutation ($pedidoId: ID!) { verificarPagoPedido(pedidoId: $pedidoId) { resultado } }`,
+      { pedidoId: id },
+      Astro.locals.accessToken
+    );
+    if (verificarPagoPedido.resultado === 'APROBADO') {
+      return Astro.redirect(`/pago/resultado?metodo=verificar&pedido=${id}`);
+    }
+  } catch {
+    /* si falla la revisión, se muestra la página normal */
+  }
+}
+
 let pedido: Pedido | null = null;
 let error: string | null = null;
 try {
@@ -85,6 +103,10 @@ const pesos = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN
               <p class="pago-nota">
                 Te llevaremos a la página segura del servicio que elijas. Nuvé no guarda los datos de tu tarjeta.
               </p>
+              <p class="pago-nota">
+                ¿Ya pagaste con Mercado Pago y no regresaste a la tienda?
+                <a href={`/pago/resultado?metodo=verificar&pedido=${pedido.id}`}>Revisar mi pago</a>
+              </p>
             </form>
           ) : (
             <div class="aviso" role="status">
@@ -101,7 +123,7 @@ const pesos = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN
 
 <script>
   // Evita doble clic mientras se crea el cobro.
-  // (El botón elegido se copia a un campo oculto porque un botón deshabilitado no se envía.)
+  // (El submitter se copia a un campo oculto porque un botón deshabilitado no se envía.)
   const form = document.getElementById('form-pago') as HTMLFormElement | null;
   form?.addEventListener('submit', (evento) => {
     const boton = (evento as SubmitEvent).submitter as HTMLButtonElement | null;

@@ -63,6 +63,7 @@ export const PERMISOS = {
 
     // Pagos: solo el dueño del pedido (se revisa en resolvers.js)
     iniciarPago: AUTH, confirmarPagoMercadoPago: AUTH, confirmarPagoPaypal: AUTH,
+    verificarPagoPedido: AUTH,
   },
 
   // Campos anidados que expondrían datos de otros usuarios

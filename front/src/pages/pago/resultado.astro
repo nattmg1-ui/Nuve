@@ -6,6 +6,7 @@
 //   Mercado Pago: /pago/resultado?metodo=mercadopago&pedido=12&payment_id=123...
 //   PayPal:       /pago/resultado?metodo=paypal&pedido=12&token=ORDEN&PayerID=...
 //   PayPal (canceló): ...&cancelado=1
+//   Revisar si ya se pagó (botón "Ya pagué"): /pago/resultado?metodo=verificar&pedido=12
 import Layout from '../../layouts/Layout.astro';
 import '../../components/Panel.css';
 import '../../components/Pago.css';
@@ -49,6 +50,14 @@ try {
         )
       ).confirmarPagoPaypal;
     }
+  } else if (metodo === 'verificar' && pedidoParam) {
+    confirmacion = (
+      await gql<{ verificarPagoPedido: Confirmacion }>(
+        `mutation ($pedidoId: ID!) { verificarPagoPedido(pedidoId: $pedidoId) { ${CAMPOS} } }`,
+        { pedidoId: pedidoParam },
+        Astro.locals.accessToken
+      )
+    ).verificarPagoPedido;
   } else {
     error = 'No reconocemos este resultado de pago.';
   }
