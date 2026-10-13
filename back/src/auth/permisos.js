@@ -19,6 +19,7 @@ export const PERMISOS = {
   Query: {
     yo: AUTH,
     resumenVentas: [ADMIN],
+    simulacionOxxo: [ADMIN],
     roles: [ADMIN],
     rol: [ADMIN],
     usuarios: [ADMIN],
@@ -63,6 +64,8 @@ export const PERMISOS = {
 
     // Pagos: solo el dueño del pedido (se revisa en resolvers.js)
     iniciarPago: AUTH, pagarConTarjeta: AUTH, confirmarPagoPaypal: AUTH,
+    pagarEnOxxo: AUTH, verificarPagoOxxo: AUTH,
+    simularPagoOxxo: [ADMIN],
   },
 
   // Campos anidados que expondrían datos de otros usuarios

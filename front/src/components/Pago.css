@@ -103,6 +103,58 @@
   font: var(--text-body-sm);
 }
 
+/* Otras formas de pago (PayPal y OXXO) */
+
+.pago-otros {
+  display: grid;
+  gap: 12px;
+}
+
+/* Ficha de OXXO */
+
+.oxxo-datos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 16px 0;
+}
+
+.oxxo-datos dt {
+  font: var(--text-caption);
+  color: var(--color-slate);
+  margin: 0 0 4px;
+}
+
+.oxxo-datos dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.oxxo-monto {
+  font-size: 1.3rem;
+}
+
+.oxxo-referencia {
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 1.15rem;
+  letter-spacing: 0.06em;
+  word-break: break-all;
+}
+
+.oxxo-pasos {
+  margin: 0 0 4px;
+  padding-left: 20px;
+  font: var(--text-body-sm);
+}
+
+.oxxo-pasos li + li {
+  margin-top: 6px;
+}
+
+.pago-acciones form {
+  display: contents;
+}
+
 /* Resultado */
 
 .pago-resultado {
@@ -163,6 +215,10 @@
 
   .pago-acciones .btn {
     width: 100%;
+  }
+
+  .oxxo-datos {
+    grid-template-columns: 1fr;
   }
 }
 

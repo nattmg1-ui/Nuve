@@ -167,15 +167,24 @@ export default function PagoTarjeta({ pedidoId, total, publicKey, email }: Props
       {/* Aquí Mercado Pago dibuja el formulario de tarjeta */}
       <div id="brick-tarjeta" hidden={terminado} />
 
-      {/* Otra opción: PayPal (redirección a la página de PayPal) */}
+      {/* Otras opciones: PayPal (redirección a PayPal) y OXXO (ficha para pagar en efectivo) */}
       {!terminado && estado !== 'procesando' && (
-        <form className="pago-otro" method="post" action="/api/pago/iniciar">
-          <input type="hidden" name="pedidoId" value={pedidoId} />
-          <span>¿Prefieres PayPal?</span>
-          <button className="btn btn-secondary" type="submit" name="metodo" value="PAYPAL">
-            Pagar con PayPal
-          </button>
-        </form>
+        <div className="pago-otros">
+          <form className="pago-otro" method="post" action="/api/pago/iniciar">
+            <input type="hidden" name="pedidoId" value={pedidoId} />
+            <span>¿Prefieres PayPal?</span>
+            <button className="btn btn-secondary" type="submit" name="metodo" value="PAYPAL">
+              Pagar con PayPal
+            </button>
+          </form>
+          <form className="pago-otro" method="post" action="/api/pago/oxxo">
+            <input type="hidden" name="pedidoId" value={pedidoId} />
+            <span>¿Prefieres pagar en efectivo? Genera una ficha y paga en cualquier OXXO.</span>
+            <button className="btn btn-secondary" type="submit">
+              Pagar en OXXO
+            </button>
+          </form>
+        </div>
       )}
     </div>
   );

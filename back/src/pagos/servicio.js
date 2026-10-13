@@ -8,10 +8,14 @@
 import { pool, query } from '../db.js';
 import { ROLES } from '../auth/config.js';
 import { datosInvalidos, sinPermiso } from '../auth/errores.js';
+import { cancelarOrden } from './mercadopago.js';
 
 /** Pedido listo para cobrarse. Lanza un error si no es del usuario o ya no está pendiente. */
 export async function pedidoParaPagar(ctx, pedidoId) {
-  const { rows } = await query('SELECT id, usuario_id, total, estado FROM pedido WHERE id = $1', [pedidoId]);
+  const { rows } = await query(
+    'SELECT id, usuario_id, total, estado, oxxo_orden_id, oxxo_vence FROM pedido WHERE id = $1',
+    [pedidoId]
+  );
   const pedido = rows[0];
   if (!pedido) throw datosInvalidos('El pedido no existe.');
   if (String(pedido.usuario_id) !== String(ctx.usuario.id)) throw sinPermiso('Ese pedido no es tuyo.');
@@ -23,7 +27,21 @@ export async function pedidoParaPagar(ctx, pedidoId) {
     total: Number(pedido.total),
     correo: usuario[0]?.correo ?? null,
     nombre: usuario[0]?.nombre ?? null,
+    // Ficha de OXXO generada antes (si hay)
+    oxxoOrdenId: pedido.oxxo_orden_id ?? null,
+    oxxoVencida: pedido.oxxo_vence ? new Date(pedido.oxxo_vence) <= new Date() : false,
   };
+}
+
+/** Guarda en el pedido la ficha de OXXO que generó Mercado Pago. */
+export async function guardarFichaOxxo(pedidoId, ficha) {
+  await query(
+    `UPDATE pedido
+     SET oxxo_orden_id = $1, oxxo_referencia = $2, oxxo_codigo_barras = $3, oxxo_url = $4,
+         oxxo_vence = COALESCE($5, oxxo_vence)
+     WHERE id = $6`,
+    [ficha.ordenId, ficha.referencia, ficha.codigoBarras, ficha.url, ficha.vence ?? null, pedidoId]
+  );
 }
 
 /** Revisa que el pedido exista y sea del usuario (o que el usuario sea personal de la tienda). */
@@ -44,7 +62,7 @@ export async function registrarPago({ pedidoId, metodo, transaccionId, monto }) 
     await client.query('BEGIN');
     // FOR UPDATE: si la misma confirmación llega dos veces al mismo tiempo, la segunda espera
     const { rows } = await client.query(
-      'SELECT estado, total, metodo_pago, transaccion_pago_id FROM pedido WHERE id = $1 FOR UPDATE',
+      'SELECT estado, total, metodo_pago, transaccion_pago_id, oxxo_orden_id FROM pedido WHERE id = $1 FOR UPDATE',
       [pedidoId]
     );
     const pedido = rows[0];
@@ -70,6 +88,12 @@ export async function registrarPago({ pedidoId, metodo, transaccionId, monto }) 
       [metodo, String(transaccionId), pedidoId]
     );
     await client.query('COMMIT');
+
+    // Si tenía una ficha de OXXO y se pagó de otra forma (tarjeta o PayPal),
+    // se cancela la ficha para que no se pueda pagar dos veces.
+    if (pedido.oxxo_orden_id && pedido.oxxo_orden_id !== String(transaccionId)) {
+      await cancelarOrden(pedido.oxxo_orden_id);
+    }
     return true;
   } catch (err) {
     await client.query('ROLLBACK');

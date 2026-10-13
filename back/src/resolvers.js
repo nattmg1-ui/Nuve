@@ -17,7 +17,8 @@ import { validarDireccion } from './direcciones/validacion.js';
 import { validarProducto } from './productos/validacion.js';
 import { guardarProductoCompleto } from './productos/servicio.js';
 import { resumenVentas } from './reportes/ventas.js';
-import { pedidoParaPagar, asegurarPedidoDelUsuario, registrarPago } from './pagos/servicio.js';
+import { pedidoParaPagar, asegurarPedidoDelUsuario, registrarPago, guardarFichaOxxo } from './pagos/servicio.js';
+import { PAGOS } from './pagos/config.js';
 import * as mercadoPago from './pagos/mercadopago.js';
 import * as paypal from './pagos/paypal.js';
 
@@ -155,6 +156,17 @@ const mapPedido = (r) => ({
   transaccionPagoId: r.transaccion_pago_id,
   metodoPago: r.metodo_pago ?? null,
   fechaPago: r.fecha_pago ? fechaHora(r.fecha_pago) : null,
+  fichaOxxo: r.oxxo_orden_id
+    ? {
+        ordenId: r.oxxo_orden_id, // uso interno, no sale en el schema
+        referencia: r.oxxo_referencia,
+        codigoBarras: r.oxxo_codigo_barras,
+        url: r.oxxo_url,
+        vence: fechaHora(r.oxxo_vence),
+        vencida: r.oxxo_vence ? new Date(r.oxxo_vence) <= new Date() : false,
+      }
+    : null,
+  pagoEnOxxo: Boolean(r.oxxo_orden_id) && r.metodo_pago === 'MERCADO_PAGO' && r.transaccion_pago_id === r.oxxo_orden_id,
 });
 
 const mapDetallePedido = (r) => ({
@@ -249,6 +261,10 @@ async function cambiarEstadoPedido(pedidoId, nuevoEstado) {
     }
     const { rows } = await client.query('UPDATE pedido SET estado = $1 WHERE id = $2 RETURNING *', [nuevoEstado, pedidoId]);
     await client.query('COMMIT');
+    // Si se cancela un pedido con ficha de OXXO, también se cancela la ficha en Mercado Pago
+    if (nuevoEstado === 'CANCELADO' && rows[0].oxxo_orden_id) {
+      await mercadoPago.cancelarOrden(rows[0].oxxo_orden_id);
+    }
     return mapPedido(rows[0]);
   } catch (err) {
     await client.query('ROLLBACK');
@@ -271,6 +287,7 @@ export const resolvers = protegerResolvers({
   // ------------------------------------------------------------------
   Query: {
     resumenVentas: (_, { periodo }) => resumenVentas(periodo),
+    simulacionOxxo: () => PAGOS.oxxo.simular,
 
     yo: async (_, __, ctx) => {
       const usuario = await findById('usuario', mapUsuario, ctx.usuario.id);
@@ -919,6 +936,83 @@ export const resolvers = protegerResolvers({
         resultado: cobro.resultado,
         pedido: await findById('pedido', mapPedido, orden.pedidoId),
         mensaje: mensajePago(cobro.resultado, orden.pedidoId),
+      };
+    },
+
+    // OXXO (Mercado Pago, Checkout API): el cliente paga en efectivo DESPUÉS.
+    // El pedido se queda PENDIENTE (con el stock apartado) hasta que se confirme el pago.
+    pagarEnOxxo: async (_, { pedidoId }, ctx) => {
+      const pedido = await pedidoParaPagar(ctx, pedidoId);
+      // Si ya tiene una ficha vigente, se regresa la misma (no se generan dos)
+      if (pedido.oxxoOrdenId && !pedido.oxxoVencida) return findById('pedido', mapPedido, pedido.id);
+      // Si la anterior venció, se cancela y se genera otra
+      if (pedido.oxxoOrdenId) await mercadoPago.cancelarOrden(pedido.oxxoOrdenId);
+
+      const ficha = await mercadoPago.crearFichaOxxo(pedido, pedido.oxxoOrdenId ?? 'primera');
+      await guardarFichaOxxo(pedido.id, ficha);
+      return findById('pedido', mapPedido, pedido.id);
+    },
+    verificarPagoOxxo: async (_, { pedidoId }, ctx) => {
+      await asegurarPedidoDelUsuario(ctx, pedidoId);
+      const pedido = await findById('pedido', mapPedido, pedidoId);
+      if (!pedido.fichaOxxo) throw datosInvalidos('Este pedido no tiene ficha de OXXO.');
+      if (pedido.estado !== 'PENDIENTE') {
+        return {
+          resultado: pedido.estado === 'CANCELADO' ? 'RECHAZADO' : 'APROBADO',
+          pedido,
+          mensaje: `El pedido #${pedido.id} está ${pedido.estado}.`,
+        };
+      }
+
+      const { ordenId } = pedido.fichaOxxo;
+      const orden = await mercadoPago.consultarOrden(ordenId);
+
+      if (orden.pagado) {
+        await registrarPago({ pedidoId: pedido.id, metodo: 'MERCADO_PAGO', transaccionId: ordenId, monto: orden.monto });
+        return {
+          resultado: 'APROBADO',
+          pedido: await findById('pedido', mapPedido, pedido.id),
+          mensaje: mensajePago('APROBADO', pedido.id),
+        };
+      }
+
+      // Si la ficha venció (según Mercado Pago o según la fecha guardada) se cancela el pedido
+      // y se devuelve el stock. cambiarEstadoPedido también cancela la ficha en Mercado Pago.
+      if (orden.terminado || pedido.fichaOxxo.vencida) {
+        const cancelado = await cambiarEstadoPedido(pedido.id, 'CANCELADO');
+        return {
+          resultado: 'RECHAZADO',
+          pedido: cancelado,
+          mensaje: `La ficha de OXXO del pedido #${pedido.id} venció sin pago, así que el pedido se canceló. Puedes volver a comprar cuando quieras.`,
+        };
+      }
+
+      // Sigue esperando pago. Si la ficha llegó incompleta al generarla, se completa ahora.
+      if (!pedido.fichaOxxo.referencia && orden.referencia) {
+        await guardarFichaOxxo(pedido.id, { ordenId, url: orden.url, referencia: orden.referencia, codigoBarras: orden.codigoBarras });
+      }
+      return {
+        resultado: 'PENDIENTE',
+        pedido: await findById('pedido', mapPedido, pedido.id),
+        mensaje: `Todavía no recibimos el pago del pedido #${pedido.id}. Si ya pagaste, puede tardar un poco en reflejarse; vuelve a verificar más tarde.`,
+      };
+    },
+    // Solo pruebas: en sandbox una ficha no se puede pagar en una tienda real.
+    // Usa la misma función que un pago real (registrarPago), así se prueba la lógica de Nuvé.
+    simularPagoOxxo: async (_, { pedidoId }) => {
+      if (!PAGOS.oxxo.simular) {
+        throw datosInvalidos('La simulación de OXXO solo funciona en modo de pruebas (OXXO_SIMULAR=true en el backend).');
+      }
+      const pedido = await findById('pedido', mapPedido, pedidoId);
+      if (!pedido) throw datosInvalidos('El pedido no existe.');
+      if (!pedido.fichaOxxo) throw datosInvalidos(`El pedido #${pedido.id} no tiene ficha de OXXO.`);
+      if (pedido.estado !== 'PENDIENTE') throw datosInvalidos(`El pedido #${pedido.id} está ${pedido.estado}.`);
+
+      await registrarPago({ pedidoId: pedido.id, metodo: 'MERCADO_PAGO', transaccionId: pedido.fichaOxxo.ordenId, monto: pedido.total });
+      return {
+        resultado: 'APROBADO',
+        pedido: await findById('pedido', mapPedido, pedido.id),
+        mensaje: `Pago de OXXO simulado: el pedido #${pedido.id} quedó PAGADO.`,
       };
     },
     eliminarPedido: async (_, { id: tid }) => {

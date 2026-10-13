@@ -12,6 +12,8 @@ interface Pedido {
   estado: string;
   metodoPago: string | null;
   transaccionPagoId: string | null;
+  pagoEnOxxo: boolean;
+  fichaOxxo: { referencia: string | null; vence: string; vencida: boolean } | null;
   estadosSiguientes: string[];
   usuario: { nombre: string };
   detalles: { cantidad: number; variante: { tono: string | null; producto: { nombre: string } } }[];
@@ -22,21 +24,23 @@ const estadoParam = Astro.url.searchParams.get('estado') ?? '';
 const filtro = ESTADOS.includes(estadoParam) ? estadoParam : null;
 
 let pedidos: Pedido[] = [];
+// true si el backend tiene OXXO_SIMULAR=true (solo pruebas)
+let simulacionOxxo = false;
 let error: string | null = null;
 try {
-  pedidos = (
-    await gql<{ pedidos: Pedido[] }>(
+  ({ pedidos, simulacionOxxo } = await gql<{ pedidos: Pedido[]; simulacionOxxo: boolean }>(
       `query ($estado: StatusPedido) {
+        simulacionOxxo
         pedidos(estado: $estado) {
-          id fecha total estado metodoPago transaccionPagoId estadosSiguientes
+          id fecha total estado metodoPago transaccionPagoId pagoEnOxxo estadosSiguientes
+          fichaOxxo { referencia vence vencida }
           usuario { nombre }
           detalles { cantidad variante { tono producto { nombre } } }
         }
       }`,
       { estado: filtro },
       Astro.locals.accessToken
-    )
-  ).pedidos;
+    ));
 } catch (e) {
   error = e instanceof Error ? e.message : 'Error desconocido';
 }
@@ -76,8 +80,21 @@ try {
               <td>
                 {p.metodoPago ? (
                   <>
-                    {p.metodoPago === 'PAYPAL' ? 'PayPal' : 'Mercado Pago'}
+                    {p.metodoPago === 'PAYPAL' ? 'PayPal' : p.pagoEnOxxo ? 'OXXO (Mercado Pago)' : 'Mercado Pago'}
                     <div class="panel-pago">{p.transaccionPagoId}</div>
+                  </>
+                ) : p.estado === 'PENDIENTE' && p.fichaOxxo ? (
+                  <>
+                    {p.fichaOxxo.vencida ? 'Ficha OXXO vencida' : 'Esperando pago en OXXO'}
+                    <div class="panel-pago">Ref. {p.fichaOxxo.referencia ?? '—'} · vence {p.fichaOxxo.vence}</div>
+                    {simulacionOxxo && (
+                      <form method="post" action="/api/admin/oxxo-simular">
+                        <input type="hidden" name="pedidoId" value={p.id} />
+                        <button class="btn btn-secondary btn-sm" type="submit" title="Solo pruebas: en sandbox no se puede pagar una ficha real">
+                          Simular pago (pruebas)
+                        </button>
+                      </form>
+                    )}
                   </>
                 ) : (
                   <span class="panel-pago">—</span>

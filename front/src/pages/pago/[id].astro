@@ -3,6 +3,7 @@
 //   - Tarjeta (Mercado Pago, Checkout API): el formulario está aquí mismo y el
 //     cobro se hace sin salir de Nuvé (componente PagoTarjeta, isla de React).
 //   - PayPal: botón que manda al cliente a la página de PayPal.
+//   - OXXO: botón que genera una ficha para pagar en efectivo (/pago/oxxo/[id]).
 import Layout from '../../layouts/Layout.astro';
 import Avisos from '../../components/Avisos.astro';
 import PagoTarjeta from '../../components/PagoTarjeta';
@@ -15,6 +16,7 @@ interface Pedido {
   fecha: string;
   total: number;
   estado: string;
+  fichaOxxo: { vencida: boolean } | null;
   detalles: { cantidad: number; subtotal: number; variante: { tono: string | null; producto: { nombre: string } } }[];
 }
 
@@ -32,7 +34,7 @@ try {
     await gql<{ pedido: Pedido | null }>(
       `query ($id: ID!) {
         pedido(id: $id) {
-          id fecha total estado
+          id fecha total estado fichaOxxo { vencida }
           detalles { cantidad subtotal variante { tono producto { nombre } } }
         }
       }`,
@@ -79,6 +81,12 @@ const pesos = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN
 
           {pedido.estado === 'PENDIENTE' ? (
             <>
+              {pedido.fichaOxxo && !pedido.fichaOxxo.vencida && (
+                <div class="aviso" role="status">
+                  Ya generaste una ficha para pagar este pedido en OXXO.{' '}
+                  <a href={`/pago/oxxo/${pedido.id}`}>Ver ficha</a>. Si pagas aquí con otro método, la ficha se cancela.
+                </div>
+              )}
               <h3 class="panel-subtitulo">Paga con tarjeta</h3>
               <p class="pago-nota">
                 Pago seguro con Mercado Pago. Los datos de tu tarjeta los procesa Mercado Pago; Nuvé no los guarda.

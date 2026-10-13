@@ -1,0 +1,135 @@
+---
+// Ficha para pagar en efectivo en OXXO (Mercado Pago, Checkout API).
+// Muestra la referencia, el monto y la fecha límite. El pedido sigue PENDIENTE
+// hasta que Mercado Pago confirme el pago; el cliente lo revisa con "Verificar pago".
+import Layout from '../../../layouts/Layout.astro';
+import Avisos from '../../../components/Avisos.astro';
+import '../../../components/Panel.css';
+import '../../../components/Pago.css';
+import { gql } from '../../../lib/graphql';
+
+interface Pedido {
+  id: string;
+  total: number;
+  estado: string;
+  fichaOxxo: {
+    referencia: string | null;
+    codigoBarras: string | null;
+    url: string | null;
+    vence: string;
+    vencida: boolean;
+  } | null;
+}
+
+const { id } = Astro.params;
+
+let pedido: Pedido | null = null;
+let error: string | null = null;
+try {
+  pedido = (
+    await gql<{ pedido: Pedido | null }>(
+      `query ($id: ID!) {
+        pedido(id: $id) { id total estado fichaOxxo { referencia codigoBarras url vence vencida } }
+      }`,
+      { id },
+      Astro.locals.accessToken
+    )
+  ).pedido;
+  if (!pedido) error = 'No encontramos ese pedido.';
+} catch (e) {
+  error = e instanceof Error ? e.message : 'Error desconocido';
+}
+
+const pesos = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
+const ficha = pedido?.fichaOxxo ?? null;
+---
+
+<Layout titulo="Pagar en OXXO — Nuvé">
+  <div class="pago">
+    <h2 class="panel-titulo">Pagar en OXXO</h2>
+    <Avisos />
+    {error && <div class="aviso aviso--error" role="alert">{error}</div>}
+
+    {
+      pedido && pedido.estado !== 'PENDIENTE' && (
+        <div class="aviso" role="status">
+          El pedido #{pedido.id} ya no está pendiente de pago (está <strong>{pedido.estado}</strong>).
+        </div>
+      )
+    }
+
+    {
+      pedido && pedido.estado === 'PENDIENTE' && !ficha && (
+        <div class="aviso" role="status">
+          Este pedido todavía no tiene ficha de OXXO. <a href={`/pago/${pedido.id}`}>Elegir cómo pagar</a>
+        </div>
+      )
+    }
+
+    {
+      pedido && pedido.estado === 'PENDIENTE' && ficha && (
+        <>
+          <section class="pago-resultado pago-resultado--pendiente oxxo-ficha" aria-label="Ficha de pago">
+            <p class="pago-resultado__estado">{ficha.vencida ? 'Ficha vencida' : 'Esperando tu pago'}</p>
+            <h2>Pedido #{pedido.id}</h2>
+
+            <dl class="oxxo-datos">
+              <div>
+                <dt>Monto a pagar</dt>
+                <dd class="oxxo-monto">{pesos.format(pedido.total)}</dd>
+              </div>
+              <div>
+                <dt>Referencia</dt>
+                <dd class="oxxo-referencia">{ficha.referencia ?? 'Generando… recarga la página en unos segundos.'}</dd>
+              </div>
+              <div>
+                <dt>Paga antes de</dt>
+                <dd>{ficha.vence}</dd>
+              </div>
+            </dl>
+
+            {ficha.vencida ? (
+              <p>
+                Esta ficha venció. Puedes generar una nueva, pagar de otra forma o verificar por si alcanzaste a pagarla.
+              </p>
+            ) : (
+              <ol class="oxxo-pasos">
+                <li>Ve a cualquier tienda OXXO antes de la fecha límite.</li>
+                <li>Muestra la ficha en caja (o dicta la referencia) y paga el monto exacto en efectivo.</li>
+                <li>Guarda tu ticket. Después regresa aquí y da clic en "Ya pagué, verificar".</li>
+              </ol>
+            )}
+
+            <div class="pago-acciones">
+              {ficha.url && !ficha.vencida && (
+                <a class="btn btn-primary" href={ficha.url} target="_blank" rel="noopener noreferrer">
+                  Ver ficha para imprimir
+                </a>
+              )}
+              <form method="post" action="/api/pago/oxxo-verificar">
+                <input type="hidden" name="pedidoId" value={pedido.id} />
+                <button class="btn btn-secondary" type="submit">Ya pagué, verificar</button>
+              </form>
+              {ficha.vencida && (
+                <form method="post" action="/api/pago/oxxo">
+                  <input type="hidden" name="pedidoId" value={pedido.id} />
+                  <button class="btn btn-primary" type="submit">Generar nueva ficha</button>
+                </form>
+              )}
+            </div>
+          </section>
+
+          <p class="pago-nota">
+            El pago en OXXO no es inmediato: puede tardar en reflejarse. Mientras tanto tus productos quedan apartados.
+            Si la ficha vence sin pago, el pedido se cancela.
+          </p>
+          <p>
+            <a class="btn btn-secondary" href={`/pago/${pedido.id}`}>Prefiero pagar con tarjeta o PayPal</a>
+          </p>
+        </>
+      )
+    }
+
+    <p><a href="/mi-cuenta">Ver mis pedidos</a></p>
+  </div>
+</Layout>

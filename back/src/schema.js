@@ -202,6 +202,10 @@ export const typeDefs = `#graphql
     metodoPago: MetodoPago
     """Fecha y hora del pago en hora de la Ciudad de México (AAAA-MM-DD HH:MM)."""
     fechaPago: String
+    """Ficha para pagar en OXXO (vacío si no se ha generado)."""
+    fichaOxxo: FichaOxxo
+    """true si el pedido se pagó en efectivo en OXXO."""
+    pagoEnOxxo: Boolean!
     detalles: [DetallePedido!]!
   }
 
@@ -363,7 +367,7 @@ export const typeDefs = `#graphql
   }
 
   # ------------------------------------------------------------------
-  # PAGOS (Mercado Pago y PayPal, por redirección)
+  # PAGOS (Mercado Pago: tarjeta y OXXO · PayPal: redirección)
   # ------------------------------------------------------------------
 
   """Link de la página de Mercado Pago o PayPal a donde se manda al cliente a pagar."""
@@ -383,6 +387,19 @@ export const typeDefs = `#graphql
     email: String!
     tipoIdentificacion: String
     numeroIdentificacion: String
+  }
+
+  """Ficha de Mercado Pago para pagar en efectivo en OXXO."""
+  type FichaOxxo {
+    """Número de referencia que se da en caja"""
+    referencia: String
+    """Contenido del código de barras de la ficha"""
+    codigoBarras: String
+    """Link de la ficha de Mercado Pago (para ver o imprimir)"""
+    url: String
+    """Fecha y hora límite para pagar (hora de la Ciudad de México)"""
+    vence: String!
+    vencida: Boolean!
   }
 
   type ConfirmacionPago {
@@ -444,6 +461,9 @@ export const typeDefs = `#graphql
 
     """Resumen de ventas del panel (solo ADMIN)."""
     resumenVentas(periodo: PeriodoVentas!): ResumenVentas!
+
+    """true si está activo el botón para simular pagos de OXXO (solo pruebas, solo ADMIN)."""
+    simulacionOxxo: Boolean!
 
     roles: [Rol!]!
     rol(id: ID!): Rol
@@ -582,6 +602,12 @@ export const typeDefs = `#graphql
     pagarConTarjeta(pedidoId: ID!, tarjeta: TarjetaInput!): ConfirmacionPago!
     """Al regresar de PayPal: cobra la orden aprobada y, si se completó, marca el pedido como PAGADO."""
     confirmarPagoPaypal(ordenId: String!): ConfirmacionPago!
+    """OXXO: genera la ficha para pagar en efectivo (si ya hay una vigente, regresa la misma)."""
+    pagarEnOxxo(pedidoId: ID!): Pedido!
+    """OXXO: consulta en Mercado Pago si ya se pagó la ficha. Si venció sin pago, cancela el pedido."""
+    verificarPagoOxxo(pedidoId: ID!): ConfirmacionPago!
+    """Solo pruebas (OXXO_SIMULAR=true) y solo ADMIN: marca como pagada la ficha de OXXO."""
+    simularPagoOxxo(pedidoId: ID!): ConfirmacionPago!
 
     # --- DetallePedido ---
     crearDetallePedido(datos: DetallePedidoInput!): DetallePedido!

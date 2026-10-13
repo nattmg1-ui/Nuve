@@ -1,6 +1,11 @@
 // back/src/pagos/mercadopago.js
 // Mercado Pago, Checkout API (Orders API).
-// El cliente escribe su tarjeta DENTRO de Nuvé, en el formulario de Mercado Pago
+// Dos formas de pago con la misma API:
+//   1) Tarjeta: se cobra al momento (pagarConTarjeta).
+//   2) Efectivo en OXXO: se genera una ficha y el cliente paga después en tienda
+//      (crearFichaOxxo, consultarOrden, cancelarOrden).
+//
+// Tarjeta: el cliente escribe su tarjeta DENTRO de Nuvé, en el formulario de Mercado Pago
 // (Card Payment Brick). Ese formulario no nos manda la tarjeta: la convierte en un
 // "token" de un solo uso. Aquí el backend cobra con ese token:
 //   POST /v1/orders  -> Mercado Pago procesa el pago y responde al momento
@@ -11,7 +16,7 @@ import crypto from 'node:crypto';
 import { PAGOS } from './config.js';
 import { datosInvalidos } from '../auth/errores.js';
 
-const { mercadoPago: MP } = PAGOS;
+const { mercadoPago: MP, oxxo: OXXO } = PAGOS;
 
 // Mensajes claros para los rechazos más comunes
 const RECHAZOS = {
@@ -123,4 +128,140 @@ export async function pagarConTarjeta(pedido, tarjeta) {
     monto: 0,
     mensaje: RECHAZOS[detalle] ?? 'La tarjeta fue rechazada. Revisa los datos o intenta con otra tarjeta.',
   };
+}
+
+// ======================================================================
+// OXXO (pago en efectivo)
+// ======================================================================
+// Flujo:
+//   1. POST /v1/orders con payment_method { id: 'oxxo', type: 'ticket' }.
+//      Mercado Pago responde con la ficha: referencia, código de barras y link.
+//      La orden queda en "action_required" (esperando pago).
+//   2. El cliente paga en caja. Puede tardar horas o días.
+//   3. Para saber si ya pagó: GET /v1/orders/{id}. Si está "processed", se pagó.
+//   4. Si la ficha vence sin pago, se cancela la orden y el pedido.
+
+const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** Llamada genérica a la API de Mercado Pago. Devuelve { ok, status, cuerpo }. */
+async function peticionMp(ruta, { method = 'GET', body, llave } = {}) {
+  if (!MP.accessToken) throw datosInvalidos('Mercado Pago no está configurado (falta MP_ACCESS_TOKEN en el backend).');
+  const headers = { Authorization: `Bearer ${MP.accessToken}` };
+  if (body) headers['Content-Type'] = 'application/json';
+  if (method === 'POST') headers['X-Idempotency-Key'] = llave ?? crypto.randomUUID();
+
+  let respuesta;
+  try {
+    respuesta = await fetch(`${MP.api}${ruta}`, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  } catch {
+    throw datosInvalidos('No se pudo conectar con Mercado Pago. Intenta de nuevo.');
+  }
+  const cuerpo = await respuesta.json().catch(() => ({}));
+  if (respuesta.status === 401 || respuesta.status === 403) {
+    console.error('[mercadopago]', respuesta.status, JSON.stringify(cuerpo));
+    throw datosInvalidos('Mercado Pago rechazó las credenciales. Revisa MP_ACCESS_TOKEN.');
+  }
+  if (respuesta.status === 429 || respuesta.status >= 500) {
+    console.error('[mercadopago]', respuesta.status, JSON.stringify(cuerpo));
+    throw datosInvalidos('Mercado Pago no respondió. Espera unos segundos e intenta de nuevo.');
+  }
+  return { ok: respuesta.ok, status: respuesta.status, cuerpo };
+}
+
+/** Saca de la orden los datos de la ficha (están dentro del pago). */
+function datosFicha(order) {
+  const metodo = order?.transactions?.payments?.[0]?.payment_method ?? {};
+  return {
+    url: metodo.ticket_url ?? null,
+    referencia: metodo.reference ?? null,
+    codigoBarras: metodo.barcode_content ?? null,
+  };
+}
+
+/**
+ * Genera la ficha de OXXO de un pedido.
+ * "intento" hace única la llave de idempotencia: si el cliente da doble clic,
+ * Mercado Pago regresa la misma ficha en lugar de crear dos.
+ * Devuelve { ordenId, url, referencia, codigoBarras, vence }.
+ */
+export async function crearFichaOxxo(pedido, intento = 'primera') {
+  const monto = pedido.total.toFixed(2);
+  const payer = { email: MP.emailPrueba || pedido.correo };
+  if (pedido.nombre) payer.first_name = pedido.nombre.split(' ')[0];
+
+  const { ok, cuerpo } = await peticionMp('/v1/orders', {
+    method: 'POST',
+    llave: `nuve-oxxo-${pedido.id}-${intento}`,
+    body: {
+      type: 'online',
+      processing_mode: 'automatic',
+      total_amount: monto,
+      external_reference: pedido.id,
+      // Tiempo para pagar, en formato ISO 8601: P3D = 3 días
+      expiration_time: `P${OXXO.diasVigencia}D`,
+      payer,
+      transactions: {
+        payments: [{ amount: monto, payment_method: { id: 'oxxo', type: 'ticket' } }],
+      },
+    },
+  });
+
+  if (!ok || !cuerpo?.id) {
+    console.error('[mercadopago] no se generó la ficha OXXO', JSON.stringify(cuerpo));
+    const detalle = (cuerpo?.errors ?? []).map((e) => e.message).filter(Boolean).join(' ');
+    throw datosInvalidos(`No se pudo generar la ficha de OXXO.${detalle ? ` (${detalle})` : ''}`);
+  }
+
+  // La orden puede llegar todavía "processing", sin la ficha. Se consulta unas veces más.
+  let order = cuerpo;
+  let ficha = datosFicha(order);
+  for (let i = 0; i < 3 && !ficha.referencia; i += 1) {
+    await esperar(1000);
+    const consulta = await peticionMp(`/v1/orders/${encodeURIComponent(order.id)}`);
+    if (consulta.ok) {
+      order = consulta.cuerpo;
+      ficha = datosFicha(order);
+    }
+  }
+
+  return {
+    ordenId: String(order.id),
+    ...ficha,
+    vence: new Date(Date.now() + OXXO.diasVigencia * 24 * 60 * 60 * 1000),
+  };
+}
+
+/**
+ * Consulta en Mercado Pago cómo va una orden.
+ * Devuelve { estado, pagado, terminado, monto, url, referencia, codigoBarras }.
+ *   pagado    -> el cliente ya pagó en OXXO
+ *   terminado -> la orden ya no se puede pagar (venció, se canceló o falló)
+ */
+export async function consultarOrden(ordenId) {
+  const { ok, cuerpo } = await peticionMp(`/v1/orders/${encodeURIComponent(ordenId)}`);
+  if (!ok) throw datosInvalidos('No se pudo consultar el pago en Mercado Pago. Intenta más tarde.');
+  const estado = cuerpo.status;
+  return {
+    estado,
+    pagado: estado === 'processed',
+    terminado: ['expired', 'canceled', 'cancelled', 'failed'].includes(estado),
+    monto: Number(cuerpo.total_paid_amount ?? cuerpo.transactions?.payments?.[0]?.paid_amount ?? 0),
+    ...datosFicha(cuerpo),
+  };
+}
+
+/**
+ * Cancela una ficha que ya no se va a usar (venció, se canceló el pedido o se pagó
+ * de otra forma). Si falla no detiene nada: solo se registra en la consola.
+ */
+export async function cancelarOrden(ordenId) {
+  try {
+    const { ok, cuerpo } = await peticionMp(`/v1/orders/${encodeURIComponent(ordenId)}/cancel`, {
+      method: 'POST',
+      llave: `nuve-cancelar-${ordenId}`,
+    });
+    if (!ok) console.warn('[mercadopago] no se canceló la orden', ordenId, JSON.stringify(cuerpo));
+  } catch (e) {
+    console.warn('[mercadopago] no se canceló la orden', ordenId, e.message);
+  }
 }
