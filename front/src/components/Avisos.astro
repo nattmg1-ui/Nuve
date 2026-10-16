@@ -1,7 +1,32 @@
 ---
+// Mensajes de éxito o error después de un formulario (?ok=... / ?error=...).
+// Se ocultan solos después de unos segundos y se quitan de la dirección (URL),
+// así no vuelven a salir al recargar la página.
 const ok = Astro.url.searchParams.get('ok');
 const error = Astro.url.searchParams.get('error');
 ---
 
-{ok && <div class="aviso aviso--ok" role="status">{ok}</div>}
-{error && <div class="aviso aviso--error" role="alert">{error}</div>}
+{ok && <div class="aviso aviso--ok" role="status" data-aviso>{ok}</div>}
+{error && <div class="aviso aviso--error" role="alert" data-aviso>{error}</div>}
+
+<script>
+  const VISIBLE_MS = 6000; // tiempo que se muestra el mensaje
+  const SALIDA_MS = 400; // duración de la animación al desaparecer
+
+  const avisos = document.querySelectorAll<HTMLElement>('[data-aviso]');
+  if (avisos.length > 0) {
+    // Quita ?ok= y ?error= de la dirección sin recargar
+    const url = new URL(location.href);
+    url.searchParams.delete('ok');
+    url.searchParams.delete('error');
+    history.replaceState(history.state, '', url.pathname + url.search + url.hash);
+
+    setTimeout(() => {
+      avisos.forEach((aviso) => {
+        aviso.style.transition = `opacity ${SALIDA_MS}ms ease`;
+        aviso.style.opacity = '0';
+        setTimeout(() => aviso.remove(), SALIDA_MS);
+      });
+    }, VISIBLE_MS);
+  }
+</script>

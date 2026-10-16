@@ -65,6 +65,9 @@ export const PERMISOS = {
     // Pagos: solo el dueño del pedido (se revisa en resolvers.js)
     iniciarPago: AUTH, pagarConTarjeta: AUTH, confirmarPagoPaypal: AUTH,
     pagarEnOxxo: AUTH, verificarPagoOxxo: AUTH,
+
+    // Tiempo real: ticket corto para abrir la conexión WebSocket
+    ticketTiempoReal: AUTH,
     simularPagoOxxo: [ADMIN],
   },
 
@@ -77,6 +80,9 @@ export const PERMISOS = {
   Direccion: { usuario: AUTH },
   Pedido: { usuario: AUTH },
 };
+
+// Las Subscriptions (pedidoNuevo, pedidoActualizado) NO van en esta tabla:
+// sus permisos se revisan dentro de resolvers.js, en "Subscription".
 
 export function verificarPermiso(regla, ctx) {
   if (!regla) return;

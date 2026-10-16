@@ -456,6 +456,18 @@ export const typeDefs = `#graphql
   # consultan anidadas desde su entidad dueña)
   # ------------------------------------------------------------------
 
+  # ------------------------------------------------------------------
+  # SUBSCRIPTIONS (tiempo real por WebSocket)
+  # ------------------------------------------------------------------
+  """Avisos en tiempo real. La conexión se abre con un ticket de ticketTiempoReal."""
+  type Subscription {
+    """Se crea un pedido nuevo (solo ADMIN y OPERADOR)."""
+    pedidoNuevo: Pedido!
+    """Un pedido cambia de estado, se paga o se genera su ficha de OXXO.
+    ADMIN y OPERADOR reciben todos; un cliente solo los de SUS pedidos."""
+    pedidoActualizado: Pedido!
+  }
+
   type Query {
     yo: Usuario
 
@@ -608,6 +620,10 @@ export const typeDefs = `#graphql
     verificarPagoOxxo(pedidoId: ID!): ConfirmacionPago!
     """Solo pruebas (OXXO_SIMULAR=true) y solo ADMIN: marca como pagada la ficha de OXXO."""
     simularPagoOxxo(pedidoId: ID!): ConfirmacionPago!
+
+    # --- Tiempo real ---
+    """Ticket de 60 segundos para abrir la conexión WebSocket de las Subscriptions."""
+    ticketTiempoReal: String!
 
     # --- DetallePedido ---
     crearDetallePedido(datos: DetallePedidoInput!): DetallePedido!

@@ -10,7 +10,7 @@
 import { pool, query } from './db.js';
 import { ROLES } from './auth/config.js';
 import { protegerResolvers } from './auth/permisos.js';
-import { sinPermiso, datosInvalidos } from './auth/errores.js';
+import { sinPermiso, datosInvalidos, noAutenticado } from './auth/errores.js';
 import * as authServicio from './auth/servicio.js';
 import { estadosSiguientes, validarTransicion } from './pedidos/estados.js';
 import { validarDireccion } from './direcciones/validacion.js';
@@ -19,6 +19,9 @@ import { guardarProductoCompleto } from './productos/servicio.js';
 import { resumenVentas } from './reportes/ventas.js';
 import { pedidoParaPagar, asegurarPedidoDelUsuario, registrarPago, guardarFichaOxxo } from './pagos/servicio.js';
 import { PAGOS } from './pagos/config.js';
+import { pubsub, EVENTOS, avisarPedidoNuevo, avisarPedidoActualizado } from './tiempoReal/eventos.js';
+import { firmarTicketTiempoReal } from './auth/tokens.js';
+import { withFilter } from 'graphql-subscriptions';
 import * as mercadoPago from './pagos/mercadopago.js';
 import * as paypal from './pagos/paypal.js';
 
@@ -261,6 +264,8 @@ async function cambiarEstadoPedido(pedidoId, nuevoEstado) {
     }
     const { rows } = await client.query('UPDATE pedido SET estado = $1 WHERE id = $2 RETURNING *', [nuevoEstado, pedidoId]);
     await client.query('COMMIT');
+    // Tiempo real: avisa del nuevo estado a admin, operador y al dueño del pedido
+    avisarPedidoActualizado(rows[0].id, rows[0].usuario_id);
     // Si se cancela un pedido con ficha de OXXO, también se cancela la ficha en Mercado Pago
     if (nuevoEstado === 'CANCELADO' && rows[0].oxxo_orden_id) {
       await mercadoPago.cancelarOrden(rows[0].oxxo_orden_id);
@@ -868,6 +873,8 @@ export const resolvers = protegerResolvers({
         }
 
         await client.query('COMMIT');
+        // Tiempo real: el pedido aparece al momento en los paneles de admin y operador
+        avisarPedidoNuevo(nuevoPedido.id, nuevoPedido.usuario_id);
         return mapPedido(nuevoPedido);
       } catch (err) {
         await client.query('ROLLBACK');
@@ -950,6 +957,7 @@ export const resolvers = protegerResolvers({
 
       const ficha = await mercadoPago.crearFichaOxxo(pedido, pedido.oxxoOrdenId ?? 'primera');
       await guardarFichaOxxo(pedido.id, ficha);
+      avisarPedidoActualizado(pedido.id);
       return findById('pedido', mapPedido, pedido.id);
     },
     verificarPagoOxxo: async (_, { pedidoId }, ctx) => {
@@ -1015,6 +1023,9 @@ export const resolvers = protegerResolvers({
         mensaje: `Pago de OXXO simulado: el pedido #${pedido.id} quedó PAGADO.`,
       };
     },
+    // Tiempo real: ticket de 60 s para abrir el WebSocket (ver tiempoReal/eventos.js)
+    ticketTiempoReal: (_, __, ctx) => firmarTicketTiempoReal(ctx.usuario.id, ctx.usuario.rol),
+
     eliminarPedido: async (_, { id: tid }) => {
       const { rowCount } = await query('DELETE FROM pedido WHERE id = $1', [tid]);
       return rowCount > 0;
@@ -1048,6 +1059,35 @@ export const resolvers = protegerResolvers({
     eliminarDetallePedido: async (_, { id: tid }) => {
       const { rowCount } = await query('DELETE FROM detalle_pedido WHERE id = $1', [tid]);
       return rowCount > 0;
+    },
+  },
+
+  // ------------------------------------------------------------------
+  // SUBSCRIPTIONS (tiempo real)
+  // ------------------------------------------------------------------
+  // subscribe: abre la "escucha" del evento (aquí se revisan los permisos).
+  // resolve:   arma el Pedido completo con los campos que pidió el navegador.
+  // ctx.usuario sale del ticket con el que se abrió el WebSocket (index.js).
+  Subscription: {
+    pedidoNuevo: {
+      subscribe: (_, __, ctx) => {
+        if (!ctx.usuario) throw noAutenticado();
+        if (!esStaff(ctx.usuario)) throw sinPermiso();
+        return pubsub.asyncIterableIterator(EVENTOS.PEDIDO_NUEVO);
+      },
+      resolve: (aviso) => findById('pedido', mapPedido, aviso.pedidoId),
+    },
+    pedidoActualizado: {
+      // withFilter: el aviso solo le llega a quien puede verlo
+      // (admin y operador: todos; cliente: solo los de SUS pedidos)
+      subscribe: withFilter(
+        (_, __, ctx) => {
+          if (!ctx.usuario) throw noAutenticado();
+          return pubsub.asyncIterableIterator(EVENTOS.PEDIDO_ACTUALIZADO);
+        },
+        (aviso, _, ctx) => esStaff(ctx.usuario) || String(aviso.usuarioId) === String(ctx.usuario.id)
+      ),
+      resolve: (aviso) => findById('pedido', mapPedido, aviso.pedidoId),
     },
   },
 });

@@ -1,6 +1,7 @@
 ---
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import EstadoPedidoForm from '../../components/EstadoPedidoForm.astro';
+import PedidosEnVivo from '../../components/PedidosEnVivo';
 import { gql } from '../../lib/graphql';
 
 const ESTADOS = ['PENDIENTE', 'PAGADO', 'ENVIADO', 'ENTREGADO', 'CANCELADO'];
@@ -57,6 +58,10 @@ try {
     <noscript><button class="btn btn-secondary btn-sm" type="submit">Filtrar</button></noscript>
   </form>
 
+  {/* Tiempo real: el bloque "tabla-pedidos" se actualiza solo con pedidos nuevos y cambios de estado */}
+  <PedidosEnVivo client:only="react" modo="staff" region="tabla-pedidos" />
+
+  <div id="tabla-pedidos">
   <p class="admin-conteo">{pedidos.length} pedido{pedidos.length === 1 ? '' : 's'}</p>
 
   <div class="panel-tabla-wrap" id="pedidos">
@@ -108,5 +113,6 @@ try {
         }
       </tbody>
     </table>
+  </div>
   </div>
 </AdminLayout>

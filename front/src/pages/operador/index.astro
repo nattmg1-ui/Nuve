@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Avisos from '../../components/Avisos.astro';
 import EstadoPedidoForm from '../../components/EstadoPedidoForm.astro';
+import PedidosEnVivo from '../../components/PedidosEnVivo';
 import '../../components/Panel.css';
 import { gql } from '../../lib/graphql';
 
@@ -51,7 +52,9 @@ try {
   {error && <div class="aviso aviso--error" role="alert">{error}</div>}
 
   <h3 class="panel-subtitulo" id="pedidos">Pedidos</h3>
-  <div class="panel-tabla-wrap">
+  {/* Tiempo real: la tabla "tabla-pedidos" se actualiza sola con pedidos nuevos y cambios de estado */}
+  <PedidosEnVivo client:only="react" modo="staff" region="tabla-pedidos" />
+  <div class="panel-tabla-wrap" id="tabla-pedidos">
     <table class="panel-tabla">
       <thead>
         <tr><th>Pedido</th><th>Cliente</th><th>Fecha</th><th>Productos</th><th>Total</th><th>Estado</th></tr>

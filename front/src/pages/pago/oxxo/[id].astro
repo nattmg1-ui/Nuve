@@ -2,8 +2,11 @@
 // Ficha para pagar en efectivo en OXXO (Mercado Pago, Checkout API).
 // Muestra la referencia, el monto y la fecha límite. El pedido sigue PENDIENTE
 // hasta que Mercado Pago confirme el pago; el cliente lo revisa con "Verificar pago".
+// Tiempo real: si el pago se confirma mientras la página está abierta, el bloque
+// "ficha-oxxo" se actualiza solo (PedidosEnVivo) y muestra "Pago recibido".
 import Layout from '../../../layouts/Layout.astro';
 import Avisos from '../../../components/Avisos.astro';
+import PedidosEnVivo from '../../../components/PedidosEnVivo';
 import '../../../components/Panel.css';
 import '../../../components/Pago.css';
 import { gql } from '../../../lib/graphql';
@@ -12,6 +15,7 @@ interface Pedido {
   id: string;
   total: number;
   estado: string;
+  pagoEnOxxo: boolean;
   fichaOxxo: {
     referencia: string | null;
     codigoBarras: string | null;
@@ -29,7 +33,7 @@ try {
   pedido = (
     await gql<{ pedido: Pedido | null }>(
       `query ($id: ID!) {
-        pedido(id: $id) { id total estado fichaOxxo { referencia codigoBarras url vence vencida } }
+        pedido(id: $id) { id total estado pagoEnOxxo fichaOxxo { referencia codigoBarras url vence vencida } }
       }`,
       { id },
       Astro.locals.accessToken
@@ -50,8 +54,28 @@ const ficha = pedido?.fichaOxxo ?? null;
     <Avisos />
     {error && <div class="aviso aviso--error" role="alert">{error}</div>}
 
+    {pedido && pedido.estado === 'PENDIENTE' && <PedidosEnVivo client:only="react" modo="cliente" region="ficha-oxxo" />}
+
+    <div id="ficha-oxxo">
     {
-      pedido && pedido.estado !== 'PENDIENTE' && (
+      pedido && pedido.estado === 'PAGADO' && (
+        <section class="pago-resultado pago-resultado--aprobado" role="status">
+          <p class="pago-resultado__estado">Pago recibido</p>
+          <h2>¡Gracias por tu compra!</h2>
+          <p>
+            Recibimos el pago del pedido #{pedido.id}
+            {pedido.pagoEnOxxo ? ' en OXXO' : ''}. Ya lo estamos preparando.
+          </p>
+          <div class="pago-acciones">
+            <a class="btn btn-primary" href="/mi-cuenta">Ver mis pedidos</a>
+            <a class="btn btn-secondary" href="/">Seguir comprando</a>
+          </div>
+        </section>
+      )
+    }
+
+    {
+      pedido && pedido.estado !== 'PENDIENTE' && pedido.estado !== 'PAGADO' && (
         <div class="aviso" role="status">
           El pedido #{pedido.id} ya no está pendiente de pago (está <strong>{pedido.estado}</strong>).
         </div>
@@ -130,6 +154,7 @@ const ficha = pedido?.fichaOxxo ?? null;
       )
     }
 
-    <p><a href="/mi-cuenta">Ver mis pedidos</a></p>
+    {pedido?.estado !== 'PAGADO' && <p><a href="/mi-cuenta">Ver mis pedidos</a></p>}
+    </div>
   </div>
 </Layout>

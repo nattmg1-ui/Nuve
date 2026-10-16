@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Avisos from '../components/Avisos.astro';
+import PedidosEnVivo from '../components/PedidosEnVivo';
 import '../components/Panel.css';
 import { gql } from '../lib/graphql';
 
@@ -41,11 +42,13 @@ try {
   {error && <div class="aviso aviso--error" role="alert">{error}</div>}
 
   <h3 class="panel-subtitulo">Mis pedidos</h3>
+  {/* Tiempo real: la tabla se actualiza sola cuando cambia el estado de un pedido del cliente */}
+  {pedidos.length > 0 && <PedidosEnVivo client:only="react" modo="cliente" region="tabla-pedidos" />}
   {pedidos.length === 0 && !error && <p class="panel-intro">Aún no tienes pedidos. <a href="/">Ir al catálogo</a></p>}
 
   {
     pedidos.length > 0 && (
-      <div class="panel-tabla-wrap">
+      <div class="panel-tabla-wrap" id="tabla-pedidos">
         <table class="panel-tabla">
           <thead>
             <tr><th>Pedido</th><th>Fecha</th><th>Productos</th><th>Total</th><th>Estado</th><th></th></tr>
