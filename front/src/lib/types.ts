@@ -1,10 +1,14 @@
 export type Rol = 'ADMIN' | 'OPERADOR' | 'CLIENTE';
 
+/** Tema visual elegido en "Mi perfil". SISTEMA = sigue al dispositivo. */
+export type TemaVisual = 'SISTEMA' | 'CLARO' | 'OSCURO';
+
 export interface UsuarioSesion {
   id: string;
   nombre: string;
   correo: string;
   rol: { nombre: Rol };
+  tema: TemaVisual;
 }
 
 export interface Imagen {

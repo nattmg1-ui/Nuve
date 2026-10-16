@@ -10,10 +10,15 @@ interface Props {
   titulo?: string;
 }
 const { titulo = 'Nuvé — Belleza que te ilumina' } = Astro.props;
+
+// Tema visual elegido en "Mi perfil". Con "Sistema" (o sin sesión) no se pone
+// nada y manda el modo claro/oscuro del dispositivo (ver styles/theme.css).
+const tema = Astro.locals.usuario?.tema;
+const dataTema = tema === 'CLARO' ? 'claro' : tema === 'OSCURO' ? 'oscuro' : undefined;
 ---
 
 <!doctype html>
-<html lang="es">
+<html lang="es" data-tema={dataTema}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />

@@ -1,6 +1,11 @@
+/* El footer siempre es Ciruela, en modo claro y oscuro. Por eso sus textos usan
+   colores fijos (blanco y Línea) y no las variables de superficie, que en modo
+   oscuro también son Ciruela y dejarían el texto invisible. */
 .site-footer {
+  --footer-texto: #FFFFFF;
+  --footer-texto-suave: #E5DAD1;
   background: var(--color-accent);
-  color: var(--color-surface); /* Blanco sobre Ciruela = 8.78:1, cumple AA (manual 11.1) */
+  color: var(--footer-texto); /* Blanco sobre Ciruela = 8.78:1, cumple AA (manual 11.1) */
   margin-top: 48px;
   padding-block: 48px 24px;
 }
@@ -19,14 +24,14 @@
 
 .footer-brand p {
   font: var(--text-body-sm);
-  color: var(--color-line);
+  color: var(--footer-texto-suave);
   margin: 8px 0 0;
   max-width: 32ch;
 }
 
 .footer-wordmark {
   font: var(--text-h2);
-  color: var(--color-surface);
+  color: var(--footer-texto);
   margin: 0;
 }
 
@@ -55,7 +60,7 @@
 
 .footer-links a {
   font: var(--text-body-sm);
-  color: var(--color-surface);
+  color: var(--footer-texto);
   text-decoration: none;
 }
 
@@ -65,7 +70,7 @@
 
 .footer-newsletter p {
   font: var(--text-body-sm);
-  color: var(--color-line);
+  color: var(--footer-texto-suave);
   margin: 0 0 12px;
 }
 
@@ -78,14 +83,14 @@
   flex: 1;
   border: 1px solid var(--color-secondary);
   background: transparent;
-  color: var(--color-surface);
+  color: var(--footer-texto);
   border-radius: var(--radius-pill);
   padding: 10px 16px;
   font: var(--text-body-sm);
 }
 
 .footer-newsletter-input::placeholder {
-  color: var(--color-line);
+  color: var(--footer-texto-suave);
 }
 
 .footer-newsletter-input:focus-visible {
@@ -111,6 +116,6 @@
 
 .footer-bottom p {
   font: var(--text-caption);
-  color: var(--color-line);
+  color: var(--footer-texto-suave);
   margin: 0;
 }

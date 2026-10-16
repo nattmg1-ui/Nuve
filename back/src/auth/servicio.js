@@ -108,6 +108,25 @@ export async function cerrarSesion(refreshToken) {
   return true;
 }
 
+/**
+ * El usuario cambia SU contraseña desde "Mi perfil".
+ * Solo se permite si escribe bien la contraseña actual. Después se cierran
+ * todas sus sesiones abiertas (otros dispositivos tendrán que volver a entrar).
+ */
+export async function cambiarPassword(usuarioId, actual, nueva) {
+  const { rows } = await query('SELECT password FROM usuario WHERE id = $1', [usuarioId]);
+  if (!rows[0]) throw noAutenticado();
+  const coincide = await bcrypt.compare(String(actual ?? ''), rows[0].password);
+  if (!coincide) throw datosInvalidos('La contraseña actual no es correcta.');
+  validarPassword(nueva);
+  if (await bcrypt.compare(nueva, rows[0].password)) {
+    throw datosInvalidos('La contraseña nueva debe ser diferente a la actual.');
+  }
+  await query('UPDATE usuario SET password = $1 WHERE id = $2', [await hashearPassword(nueva), usuarioId]);
+  await revocarSesionesDeUsuario(usuarioId);
+  return true;
+}
+
 export const revocarSesionesDeUsuario = (usuarioId) =>
   query('UPDATE refresh_token SET revocado = TRUE, revocado_en = NOW() WHERE usuario_id = $1', [usuarioId]);
 

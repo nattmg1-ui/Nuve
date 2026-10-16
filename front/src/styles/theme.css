@@ -169,11 +169,18 @@
    El modo oscuro es opcional y no forma parte del lanzamiento; estas
    reglas quedan preparadas para cuando se habilite en una fase futura.
    Cada color conserva su significado semántico entre modos.
-   El cambio de modo lo controla el sistema operativo del usuario,
-   nunca una lógica propia de la aplicación (horario, etc.).
+   El modo lo decide el usuario en "Mi perfil" (Sistema, Claro u Oscuro);
+   con "Sistema" lo controla el sistema operativo, nunca una lógica propia
+   de la aplicación (horario, etc.).
 ----------------------------------------------------- */
+:root[data-tema="claro"] { color-scheme: light; }
+:root[data-tema="oscuro"] { color-scheme: dark; }
+
+/* Modo oscuro según el tema del usuario (atributo data-tema en <html>, ver Layout.astro).
+   - Tema SISTEMA: sigue al dispositivo, salvo que el usuario eligió CLARO.
+   - Tema OSCURO elegido en "Mi perfil": siempre oscuro, aunque el dispositivo esté en claro. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-tema="claro"]) {
     --color-fondo: #4F2835;        /* Ciruela Oscuro (equivalencia de tokens, 5.4) */
     --color-superficie: #6E3B4C;   /* Ciruela */
     --color-texto: #FBF6F1;
@@ -183,6 +190,17 @@
                                        se usa el mismo valor que Tinta para mantener contraste AA */
     --color-texto-secundario: color-mix(in srgb, #FBF6F1 70%, transparent); /* Pizarra pierde contraste en oscuro; se aclara para precios/metadatos */
   }
+}
+
+:root[data-tema="oscuro"] {
+  --color-fondo: #4F2835;        /* Ciruela Oscuro (equivalencia de tokens, 5.4) */
+  --color-superficie: #6E3B4C;   /* Ciruela */
+  --color-texto: #FBF6F1;
+  --color-borde: color-mix(in srgb, #6E3B4C 80%, white 20%); /* Ciruela + 20% blanco */
+  /* Oro Rosa (--color-primario) no cambia entre modos, según tabla 5.4 */
+  --color-heading: #FBF6F1;      /* Ciruela ya no sirve: se confunde con Fondo/Superficie oscuros;
+                                     se usa el mismo valor que Tinta para mantener contraste AA */
+  --color-texto-secundario: color-mix(in srgb, #FBF6F1 70%, transparent); /* Pizarra pierde contraste en oscuro; se aclara para precios/metadatos */
 }
 
 /* -----------------------------------------------------

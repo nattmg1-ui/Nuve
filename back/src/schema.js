@@ -30,6 +30,14 @@ export const typeDefs = `#graphql
     RECHAZADO
   }
 
+  """Tema visual que el usuario elige en su perfil."""
+  enum TemaVisual {
+    """Sigue el modo claro/oscuro del dispositivo"""
+    SISTEMA
+    CLARO
+    OSCURO
+  }
+
   """Estado de un carrito de compras."""
   enum EstadoCarrito {
     ACTIVO
@@ -57,6 +65,8 @@ export const typeDefs = `#graphql
     correo: String!
     activo: Boolean!
     fechaRegistro: String!
+    """Tema visual elegido en "Mi perfil"."""
+    tema: TemaVisual!
     direcciones: [Direccion!]!
     carritos: [Carrito!]!
     pedidos: [Pedido!]!
@@ -512,6 +522,8 @@ export const typeDefs = `#graphql
     resena(id: ID!): Resena
 
     pedidos(estado: StatusPedido): [Pedido!]!
+    """Pedidos del usuario con sesión (en "Mi cuenta"), aunque sea ADMIN u OPERADOR."""
+    misPedidos: [Pedido!]!
     pedido(id: ID!): Pedido
   }
 
@@ -535,6 +547,12 @@ export const typeDefs = `#graphql
     # --- Usuario ---
     cambiarRolUsuario(id: ID!, rolId: ID!): Usuario
     cambiarActivoUsuario(id: ID!, activo: Boolean!): Usuario
+
+    # --- Mi perfil (el usuario con sesión, sobre SU propia cuenta) ---
+    """Cambia el nombre y el tema visual del usuario con sesión."""
+    actualizarMiPerfil(nombre: String!, tema: TemaVisual!): Usuario!
+    """Cambia la contraseña; exige la contraseña actual. Cierra las demás sesiones."""
+    cambiarMiPassword(actual: String!, nueva: String!): Boolean!
     crearUsuario(datos: UsuarioInput!): Usuario!
     actualizarUsuario(id: ID!, datos: UsuarioInput!): Usuario
     eliminarUsuario(id: ID!): Boolean!

@@ -1,0 +1,113 @@
+/* front/src/components/Ayuda.css
+   Páginas de ayuda del footer: envíos, contacto, términos y privacidad. */
+
+.ayuda {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
+.ayuda-menu {
+  display: grid;
+  gap: 4px;
+  position: sticky;
+  top: 24px;
+}
+
+.ayuda-menu a {
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: var(--color-ink);
+  text-decoration: none;
+  font: var(--text-body-sm);
+}
+
+.ayuda-menu a:hover {
+  background: var(--color-surface);
+}
+
+.ayuda-menu a[aria-current='page'] {
+  background: var(--color-primario-selected-bg);
+  color: var(--color-acento);
+  font-weight: 600;
+}
+
+.ayuda-contenido {
+  max-width: 720px;
+}
+
+.ayuda-contenido h2 {
+  margin-bottom: 8px;
+}
+
+.ayuda-contenido h3 {
+  margin: 28px 0 8px;
+}
+
+.ayuda-contenido p,
+.ayuda-contenido li {
+  line-height: 1.6;
+}
+
+.ayuda-actualizado {
+  font: var(--text-caption);
+  color: var(--color-slate);
+}
+
+.ayuda-tarjetas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+
+.ayuda-tarjeta {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  padding: 18px 20px;
+}
+
+.ayuda-tarjeta h3 {
+  margin: 0 0 6px;
+}
+
+.ayuda-tarjeta p {
+  margin: 0;
+}
+
+.ayuda-nota {
+  font: var(--text-caption);
+  color: var(--color-slate);
+  border-top: 1px solid var(--color-line);
+  padding-top: 12px;
+  margin-top: 32px;
+}
+
+@media (max-width: 800px) {
+  .ayuda {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .ayuda-menu {
+    position: static;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ayuda-tarjetas {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Modo oscuro: el texto Ciruela del enlace activo no contrasta con fondos oscuros */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="claro"]) .ayuda-menu a[aria-current='page'] {
+    color: #4F2835;
+  }
+}
+
+:root[data-tema="oscuro"] .ayuda-menu a[aria-current='page'] {
+  color: #4F2835;
+}

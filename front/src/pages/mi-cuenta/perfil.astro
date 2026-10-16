@@ -1,0 +1,70 @@
+---
+// Mi cuenta > Mi perfil.
+//   - Datos: cambiar el nombre (el correo no se puede cambiar aquí).
+//   - Tema: Sistema, Claro u Oscuro. Se guarda en la cuenta (sirve en cualquier computadora).
+//   - Contraseña: solo se cambia escribiendo la contraseña actual.
+import Layout from '../../layouts/Layout.astro';
+import Avisos from '../../components/Avisos.astro';
+import CuentaNav from '../../components/CuentaNav.astro';
+import '../../components/Panel.css';
+import '../../components/Cuenta.css';
+
+const usuario = Astro.locals.usuario!;
+
+const TEMAS = [
+  { valor: 'SISTEMA', texto: 'Sistema', detalle: 'Igual que tu dispositivo' },
+  { valor: 'CLARO', texto: 'Claro', detalle: 'Fondo claro siempre' },
+  { valor: 'OSCURO', texto: 'Oscuro', detalle: 'Fondo oscuro siempre' },
+];
+---
+
+<Layout titulo="Mi perfil — Nuvé">
+  <div class="cuenta-encabezado">
+    <h2 class="panel-titulo">Mi cuenta</h2>
+    <p class="panel-intro">Hola, {usuario.nombre}.</p>
+  </div>
+  <CuentaNav />
+  <Avisos />
+
+  <div class="cuenta-grid">
+    <section class="cuenta-tarjeta" aria-labelledby="titulo-datos">
+      <h3 id="titulo-datos">Mis datos</h3>
+      <p class="cuenta-dato">Correo<strong>{usuario.correo}</strong></p>
+      <p class="cuenta-dato">Tipo de cuenta<strong>{usuario.rol.nombre}</strong></p>
+
+      <form class="panel-form auth-form" method="post" action="/api/cuenta/perfil">
+        <label for="p-nombre">Nombre</label>
+        <input class="input" id="p-nombre" name="nombre" value={usuario.nombre} required minlength="2" maxlength="100" autocomplete="name" />
+
+        <fieldset class="cuenta-temas">
+          <legend>Apariencia</legend>
+          {TEMAS.map((t) => (
+            <label class="cuenta-tema">
+              <input type="radio" name="tema" value={t.valor} checked={usuario.tema === t.valor} />
+              <span>
+                {t.texto}
+                <small>{t.detalle}</small>
+              </span>
+            </label>
+          ))}
+        </fieldset>
+
+        <button class="btn btn-primary" type="submit">Guardar cambios</button>
+      </form>
+    </section>
+
+    <section class="cuenta-tarjeta" aria-labelledby="titulo-password">
+      <h3 id="titulo-password">Cambiar contraseña</h3>
+      <form class="panel-form auth-form" method="post" action="/api/cuenta/password">
+        <label for="p-actual">Contraseña actual</label>
+        <input class="input" id="p-actual" name="actual" type="password" required autocomplete="current-password" />
+        <label for="p-nueva">Contraseña nueva (mínimo 8 caracteres)</label>
+        <input class="input" id="p-nueva" name="nueva" type="password" required minlength="8" autocomplete="new-password" />
+        <label for="p-confirmar">Confirma la contraseña nueva</label>
+        <input class="input" id="p-confirmar" name="confirmar" type="password" required minlength="8" autocomplete="new-password" />
+        <button class="btn btn-primary" type="submit">Cambiar contraseña</button>
+      </form>
+      <p class="cuenta-nota">Al cambiarla se cierra tu sesión en los demás dispositivos.</p>
+    </section>
+  </div>
+</Layout>

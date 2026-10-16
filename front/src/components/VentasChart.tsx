@@ -25,7 +25,9 @@ const pesosExactos = new Intl.NumberFormat('es-MX', { style: 'currency', currenc
 // modo claro y en modo oscuro. El texto y la cuadrícula salen de theme.css.
 function colores() {
   const css = getComputedStyle(document.documentElement);
-  const oscuro = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  // Tema elegido en "Mi perfil" (data-tema en <html>); si es "Sistema", sigue al dispositivo
+  const tema = document.documentElement.dataset.tema;
+  const oscuro = tema === 'oscuro' || (tema !== 'claro' && window.matchMedia('(prefers-color-scheme: dark)').matches);
   return {
     barra: oscuro ? '#D9845A' : '#C2704C',
     barraHover: oscuro ? '#E6956C' : '#A85E3D',

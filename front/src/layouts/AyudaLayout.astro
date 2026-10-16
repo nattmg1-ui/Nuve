@@ -1,0 +1,38 @@
+---
+// Plantilla de las páginas de ayuda del footer: menú lateral con los 4 temas
+// y el contenido de cada página.
+import Layout from './Layout.astro';
+import '../components/Ayuda.css';
+
+interface Props {
+  titulo: string;
+}
+
+const { titulo } = Astro.props;
+
+const TEMAS = [
+  { href: '/ayuda/envios', texto: 'Envíos y devoluciones' },
+  { href: '/ayuda/contacto', texto: 'Contacto' },
+  { href: '/ayuda/terminos', texto: 'Términos y condiciones' },
+  { href: '/ayuda/privacidad', texto: 'Aviso de privacidad' },
+];
+
+const ruta = Astro.url.pathname.replace(/\/$/, '');
+---
+
+<Layout titulo={`${titulo} — Nuvé`}>
+  <div class="ayuda">
+    <nav class="ayuda-menu" aria-label="Ayuda">
+      {TEMAS.map((t) => (
+        <a href={t.href} aria-current={ruta === t.href ? 'page' : undefined}>{t.texto}</a>
+      ))}
+    </nav>
+    <article class="ayuda-contenido">
+      <h2 class="panel-titulo">{titulo}</h2>
+      <slot />
+      <p class="ayuda-nota">
+        Nuvé es un proyecto académico (CETI, Grupo 8C1). Los datos y políticas de esta página son de ejemplo.
+      </p>
+    </article>
+  </div>
+</Layout>

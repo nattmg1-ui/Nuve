@@ -56,6 +56,29 @@
   color: var(--color-error);
 }
 
+/* Modo oscuro: el verde y el rojo se aclaran para leerse sobre Ciruela */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="claro"]) .aviso--ok {
+    border-color: #A9D3B3;
+    color: #A9D3B3;
+  }
+
+  :root:not([data-tema="claro"]) .aviso--error {
+    border-color: #F2A9A1;
+    color: #F2A9A1;
+  }
+}
+
+:root[data-tema="oscuro"] .aviso--ok {
+  border-color: #A9D3B3;
+  color: #A9D3B3;
+}
+
+:root[data-tema="oscuro"] .aviso--error {
+  border-color: #F2A9A1;
+  color: #F2A9A1;
+}
+
 .panel-titulo {
   font: var(--text-h2);
   margin-bottom: 8px;

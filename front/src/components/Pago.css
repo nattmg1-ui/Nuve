@@ -222,12 +222,23 @@
   }
 }
 
+/* Ajustes de pago en modo oscuro (mismas reglas de tema que theme.css).
+   - Tema SISTEMA: sigue al dispositivo, salvo que el usuario eligió CLARO.
+   - Tema OSCURO elegido en "Mi perfil": siempre oscuro, aunque el dispositivo esté en claro. */
 @media (prefers-color-scheme: dark) {
-  .pago-resultado--aprobado .pago-resultado__estado {
+  :root:not([data-tema="claro"]) .pago-resultado--aprobado .pago-resultado__estado {
     color: #A9D3B3;
   }
 
-  .pago-resultado--rechazado .pago-resultado__estado {
+  :root:not([data-tema="claro"]) .pago-resultado--rechazado .pago-resultado__estado {
     color: #F2A9A1;
   }
+}
+
+:root[data-tema="oscuro"] .pago-resultado--aprobado .pago-resultado__estado {
+  color: #A9D3B3;
+}
+
+:root[data-tema="oscuro"] .pago-resultado--rechazado .pago-resultado__estado {
+  color: #F2A9A1;
 }

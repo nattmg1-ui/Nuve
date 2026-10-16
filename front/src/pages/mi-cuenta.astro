@@ -1,8 +1,14 @@
 ---
+// Mi cuenta > Mis pedidos.
+// Muestra SOLO los pedidos del usuario con sesión (query misPedidos), aunque sea
+// admin u operador: los pedidos de todos los clientes se ven en el panel de Pedidos.
+// Un pedido se puede cancelar mientras esté PENDIENTE (antes de pagarlo y enviarlo).
 import Layout from '../layouts/Layout.astro';
 import Avisos from '../components/Avisos.astro';
+import CuentaNav from '../components/CuentaNav.astro';
 import PedidosEnVivo from '../components/PedidosEnVivo';
 import '../components/Panel.css';
+import '../components/Cuenta.css';
 import { gql } from '../lib/graphql';
 
 interface Pedido {
@@ -21,80 +27,94 @@ let pedidos: Pedido[] = [];
 let error: string | null = null;
 try {
   pedidos = (
-    await gql<{ pedidos: Pedido[] }>(
-      `query { pedidos { id fecha total estado metodoPago pagoEnOxxo fichaOxxo { vencida } detalles { cantidad subtotal variante { tono producto { nombre } } } } }`,
+    await gql<{ misPedidos: Pedido[] }>(
+      `query {
+        misPedidos {
+          id fecha total estado metodoPago pagoEnOxxo fichaOxxo { vencida }
+          detalles { cantidad subtotal variante { tono producto { nombre } } }
+        }
+      }`,
       {},
       Astro.locals.accessToken
     )
-  ).pedidos;
+  ).misPedidos;
 } catch (e) {
   error = e instanceof Error ? e.message : 'Error desconocido';
 }
+
+const metodo = (p: Pedido) => (p.metodoPago === 'PAYPAL' ? 'PayPal' : p.pagoEnOxxo ? 'OXXO (Mercado Pago)' : 'Mercado Pago');
 ---
 
-<Layout titulo="Mi cuenta — Nuvé">
-  <h2 class="panel-titulo">Mi cuenta</h2>
-  <p class="panel-intro">
-    {usuario.nombre} · {usuario.correo} · <span class="etiqueta">{usuario.rol.nombre}</span>
-  </p>
-
+<Layout titulo="Mis pedidos — Nuvé">
+  <div class="cuenta-encabezado">
+    <h2 class="panel-titulo">Mi cuenta</h2>
+    <p class="panel-intro">Hola, {usuario.nombre}.</p>
+  </div>
+  <CuentaNav />
   <Avisos />
   {error && <div class="aviso aviso--error" role="alert">{error}</div>}
 
   <h3 class="panel-subtitulo">Mis pedidos</h3>
-  {/* Tiempo real: la tabla se actualiza sola cuando cambia el estado de un pedido del cliente */}
-  {pedidos.length > 0 && <PedidosEnVivo client:only="react" modo="cliente" region="tabla-pedidos" />}
   {pedidos.length === 0 && !error && <p class="panel-intro">Aún no tienes pedidos. <a href="/">Ir al catálogo</a></p>}
+
+  {/* Tiempo real: la tabla se actualiza sola cuando cambia el estado de un pedido */}
+  {pedidos.length > 0 && <PedidosEnVivo client:only="react" modo="cliente" region="tabla-pedidos" />}
 
   {
     pedidos.length > 0 && (
-      <div class="panel-tabla-wrap" id="tabla-pedidos">
-        <table class="panel-tabla">
-          <thead>
-            <tr><th>Pedido</th><th>Fecha</th><th>Productos</th><th>Total</th><th>Estado</th><th></th></tr>
-          </thead>
-          <tbody>
-            {pedidos.map((p) => (
-              <tr>
-                <td>#{p.id}</td>
-                <td>{p.fecha}</td>
-                <td>
-                  {p.detalles.map((d) => (
-                    <div>{d.cantidad} × {d.variante.producto.nombre}{d.variante.tono ? ` (${d.variante.tono})` : ''}</div>
-                  ))}
-                </td>
-                <td>${p.total.toFixed(2)}</td>
-                <td>
-                  <span class="etiqueta">{p.estado}</span>
-                  {p.metodoPago && (
-                    <div class="panel-pago">
-                      {p.metodoPago === 'PAYPAL' ? 'PayPal' : p.pagoEnOxxo ? 'OXXO (Mercado Pago)' : 'Mercado Pago'}
-                    </div>
-                  )}
-                  {p.estado === 'PENDIENTE' && p.fichaOxxo && (
-                    <div class="panel-pago">{p.fichaOxxo.vencida ? 'Ficha OXXO vencida' : 'Esperando pago en OXXO'}</div>
-                  )}
-                </td>
-                <td>
-                  {p.estado === 'PENDIENTE' && (
-                    <div class="panel-inline">
-                      {p.fichaOxxo ? (
-                        <a class="btn btn-primary btn-sm" href={`/pago/oxxo/${p.id}`}>Ver ficha OXXO</a>
-                      ) : (
-                        <a class="btn btn-primary btn-sm" href={`/pago/${p.id}`}>Pagar</a>
-                      )}
-                      <form method="post" action="/api/pedido/cancelar">
-                        <input type="hidden" name="pedidoId" value={p.id} />
-                        <button class="btn btn-secondary btn-sm" type="submit">Cancelar</button>
-                      </form>
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <>
+        <div class="panel-tabla-wrap" id="tabla-pedidos">
+          <table class="panel-tabla">
+            <thead>
+              <tr><th>Pedido</th><th>Fecha</th><th>Productos</th><th>Total</th><th>Estado</th><th></th></tr>
+            </thead>
+            <tbody>
+              {pedidos.map((p) => (
+                <tr>
+                  <td>#{p.id}</td>
+                  <td>{p.fecha}</td>
+                  <td>
+                    {p.detalles.map((d) => (
+                      <div>{d.cantidad} × {d.variante.producto.nombre}{d.variante.tono ? ` (${d.variante.tono})` : ''}</div>
+                    ))}
+                  </td>
+                  <td>${p.total.toFixed(2)}</td>
+                  <td>
+                    <span class="etiqueta">{p.estado}</span>
+                    {p.metodoPago && <div class="panel-pago">{metodo(p)}</div>}
+                    {p.estado === 'PENDIENTE' && p.fichaOxxo && (
+                      <div class="panel-pago">{p.fichaOxxo.vencida ? 'Ficha OXXO vencida' : 'Esperando pago en OXXO'}</div>
+                    )}
+                  </td>
+                  <td>
+                    {p.estado === 'PENDIENTE' && (
+                      <div class="panel-inline">
+                        {p.fichaOxxo ? (
+                          <a class="btn btn-primary btn-sm" href={`/pago/oxxo/${p.id}`}>Ver ficha OXXO</a>
+                        ) : (
+                          <a class="btn btn-primary btn-sm" href={`/pago/${p.id}`}>Pagar</a>
+                        )}
+                        <form
+                          method="post"
+                          action="/api/pedido/cancelar"
+                          onsubmit="return confirm('¿Cancelar este pedido? Ya no se podrá pagar ni recuperar.')"
+                        >
+                          <input type="hidden" name="pedidoId" value={p.id} />
+                          <button class="btn btn-secondary btn-sm" type="submit">Cancelar</button>
+                        </form>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p class="cuenta-nota">
+          Puedes cancelar un pedido mientras esté PENDIENTE, es decir, antes de pagarlo. Una vez pagado ya se está
+          preparando para el envío.
+        </p>
+      </>
     )
   }
 </Layout>

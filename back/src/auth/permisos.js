@@ -32,6 +32,7 @@ export const PERMISOS = {
     favorito: AUTH,
     pedidos: AUTH,
     pedido: AUTH,
+    misPedidos: AUTH,
   },
 
   Mutation: {
@@ -39,6 +40,9 @@ export const PERMISOS = {
     crearRol: [ADMIN], actualizarRol: [ADMIN], eliminarRol: [ADMIN],
     crearUsuario: [ADMIN], actualizarUsuario: [ADMIN], eliminarUsuario: [ADMIN],
     cambiarRolUsuario: [ADMIN], cambiarActivoUsuario: [ADMIN],
+
+    // Mi perfil: cualquier usuario con sesión, solo sobre su propia cuenta
+    actualizarMiPerfil: AUTH, cambiarMiPassword: AUTH,
 
     // Catálogo: solo administrador
     crearMarca: [ADMIN], actualizarMarca: [ADMIN], eliminarMarca: [ADMIN],

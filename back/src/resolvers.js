@@ -61,6 +61,7 @@ const mapUsuario = (r) => ({
   password: r.password,
   activo: r.activo,
   fechaRegistro: fecha(r.fecha_registro),
+  tema: r.tema ?? 'SISTEMA',
 });
 
 const mapMarca = (r) => ({ id: id(r.id), nombre: r.nombre, descripcion: r.descripcion, activo: r.activo });
@@ -374,6 +375,11 @@ export const resolvers = protegerResolvers({
       const { rows } = await query(`SELECT * FROM pedido ${where} ORDER BY id DESC`, params);
       return rows.map(mapPedido);
     },
+    // Solo los pedidos del usuario con sesión (Mi cuenta), sin importar su rol
+    misPedidos: async (_, __, ctx) => {
+      const { rows } = await query('SELECT * FROM pedido WHERE usuario_id = $1 ORDER BY id DESC', [ctx.usuario.id]);
+      return rows.map(mapPedido);
+    },
     pedido: (_, { id: tid }, ctx) => unoPropio('pedido', mapPedido, tid, ctx),
   },
 
@@ -517,6 +523,20 @@ export const resolvers = protegerResolvers({
       return { accessToken: s.accessToken, refreshToken: s.refreshToken, usuario: mapUsuario(s.usuarioRow) };
     },
     cerrarSesion: (_, { refreshToken }) => authServicio.cerrarSesion(refreshToken),
+
+    // --- Mi perfil: siempre sobre la cuenta del usuario con sesión (ctx.usuario.id) ---
+    actualizarMiPerfil: async (_, { nombre, tema }, ctx) => {
+      const limpio = String(nombre ?? '').trim();
+      if (!limpio) throw datosInvalidos('El nombre es obligatorio.');
+      if (limpio.length > 100) throw datosInvalidos('El nombre es demasiado largo (máximo 100 caracteres).');
+      const { rows } = await query('UPDATE usuario SET nombre = $1, tema = $2 WHERE id = $3 RETURNING *', [
+        limpio,
+        tema,
+        ctx.usuario.id,
+      ]);
+      return mapUsuario(rows[0]);
+    },
+    cambiarMiPassword: (_, { actual, nueva }, ctx) => authServicio.cambiarPassword(ctx.usuario.id, actual, nueva),
 
     // --- Usuario (solo admin; la contraseña siempre se guarda hasheada) ---
     crearUsuario: async (_, { datos }) => {

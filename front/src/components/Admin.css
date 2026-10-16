@@ -404,27 +404,53 @@
 
 /* Modo oscuro: el Ciruela (--color-accent) es el mismo color que las
    superficies, así que lo seleccionado y los enlaces usan tonos claros. */
+/* Ajustes del panel en modo oscuro (mismas reglas de tema que theme.css).
+   - Tema SISTEMA: sigue al dispositivo, salvo que el usuario eligió CLARO.
+   - Tema OSCURO elegido en "Mi perfil": siempre oscuro, aunque el dispositivo esté en claro. */
 @media (prefers-color-scheme: dark) {
-  .admin-nav__link.is-active {
+  :root:not([data-tema="claro"]) .admin-nav__link.is-active {
     color: var(--color-primario-selected-bg);
     border-bottom-color: var(--color-primario-selected-bg);
   }
 
-  .admin-periodos__opcion.is-active {
+  :root:not([data-tema="claro"]) .admin-periodos__opcion.is-active {
     background: #FBF6F1;
     color: var(--color-acento);
   }
 
-  .admin-atencion a,
-  .admin-detalle summary {
+  :root:not([data-tema="claro"]) .admin-atencion a,
+  :root:not([data-tema="claro"]) .admin-detalle summary {
     color: var(--color-primario-selected-bg);
   }
 
-  .kpi__cambio--sube {
+  :root:not([data-tema="claro"]) .kpi__cambio--sube {
     color: #A9D3B3;
   }
 
-  .kpi__cambio--baja {
+  :root:not([data-tema="claro"]) .kpi__cambio--baja {
     color: #F2A9A1;
   }
+}
+
+:root[data-tema="oscuro"] .admin-nav__link.is-active {
+  color: var(--color-primario-selected-bg);
+  border-bottom-color: var(--color-primario-selected-bg);
+}
+
+:root[data-tema="oscuro"] .admin-periodos__opcion.is-active {
+  background: #FBF6F1;
+  color: var(--color-acento);
+}
+
+:root[data-tema="oscuro"] .admin-atencion a,
+:root[data-tema="oscuro"] .admin-detalle summary {
+  color: var(--color-primario-selected-bg);
+}
+
+:root[data-tema="oscuro"] .kpi__cambio--sube {
+  color: #A9D3B3;
+}
+
+:root[data-tema="oscuro"] .kpi__cambio--baja {
+  color: #F2A9A1;
 }

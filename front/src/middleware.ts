@@ -10,7 +10,7 @@ import { ErrorGraphQL, gql } from './lib/graphql';
 import { COOKIE_ACCESS, COOKIE_REFRESH, borrarSesion, guardarSesion } from './lib/sesion';
 import type { UsuarioSesion } from './lib/types';
 
-const CAMPOS_USUARIO = 'id nombre correo rol { nombre }';
+const CAMPOS_USUARIO = 'id nombre correo tema rol { nombre }';
 
 const Q_YO = `query { yo { ${CAMPOS_USUARIO} } }`;
 const M_REFRESH = `
@@ -35,6 +35,7 @@ const REGLAS: { prefijo: string; roles?: string[] }[] = [
   { prefijo: '/pago' },
   { prefijo: '/api/pago' },
   { prefijo: '/api/tiempo-real' },
+  { prefijo: '/api/cuenta' },
 ];
 
 const coincide = (ruta: string, prefijo: string) => ruta === prefijo || ruta.startsWith(prefijo + '/');
