@@ -1,5 +1,6 @@
 ---
 import AdminLayout from '../../layouts/AdminLayout.astro';
+import PedidosEnVivo from '../../components/PedidosEnVivo';
 import { gql } from '../../lib/graphql';
 
 interface Producto {
@@ -65,6 +66,10 @@ const precioDesde = (p: Producto) => (p.variantes.length ? Math.min(...p.variant
     <button class="btn btn-secondary btn-sm" type="submit">Filtrar</button>
   </form>
 
+  {/* Tiempo real: existencias y productos se actualizan solos (ventas, inventario, cambios de otro admin) */}
+  <PedidosEnVivo client:only="react" modo="staff" region="tabla-productos" />
+
+  <div id="tabla-productos">
   <p class="admin-conteo">{visibles.length} producto{visibles.length === 1 ? '' : 's'}</p>
 
   <div class="panel-tabla-wrap">
@@ -121,5 +126,6 @@ const precioDesde = (p: Producto) => (p.variantes.length ? Math.min(...p.variant
         }
       </tbody>
     </table>
+  </div>
   </div>
 </AdminLayout>

@@ -3,6 +3,7 @@
 // con filtro por periodo (?periodo=dia | semana | mes).
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import VentasChart, { type PuntoVenta } from '../../components/VentasChart';
+import PedidosEnVivo from '../../components/PedidosEnVivo';
 import { gql } from '../../lib/graphql';
 
 const PERIODOS = {
@@ -72,6 +73,11 @@ const cambio = resumen?.cambioPorcentual ?? null;
     }
   </nav>
   <p class="admin-conteo">{periodo.detalle} · hora de la Ciudad de México</p>
+
+  {/* Tiempo real: indicadores, gráfica y productos más vendidos se actualizan solos con cada venta */}
+  <PedidosEnVivo client:only="react" modo="staff" region="resumen-ventas" />
+
+  <div id="resumen-ventas">
 
   {
     resumen && (
@@ -185,4 +191,5 @@ const cambio = resumen?.cambioPorcentual ?? null;
       </>
     )
   }
+  </div>
 </AdminLayout>

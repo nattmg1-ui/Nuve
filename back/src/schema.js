@@ -476,6 +476,9 @@ export const typeDefs = `#graphql
     """Un pedido cambia de estado, se paga o se genera su ficha de OXXO.
     ADMIN y OPERADOR reciben todos; un cliente solo los de SUS pedidos."""
     pedidoActualizado: Pedido!
+    """Cambiaron existencias o productos (alta, edición, activar/desactivar, inventario).
+    Solo ADMIN y OPERADOR. Siempre devuelve true: es solo el aviso para actualizar."""
+    inventarioActualizado: Boolean!
   }
 
   type Query {

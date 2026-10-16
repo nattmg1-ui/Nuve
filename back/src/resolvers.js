@@ -19,7 +19,13 @@ import { guardarProductoCompleto } from './productos/servicio.js';
 import { resumenVentas } from './reportes/ventas.js';
 import { pedidoParaPagar, asegurarPedidoDelUsuario, registrarPago, guardarFichaOxxo } from './pagos/servicio.js';
 import { PAGOS } from './pagos/config.js';
-import { pubsub, EVENTOS, avisarPedidoNuevo, avisarPedidoActualizado } from './tiempoReal/eventos.js';
+import {
+  pubsub,
+  EVENTOS,
+  avisarPedidoNuevo,
+  avisarPedidoActualizado,
+  avisarInventarioActualizado,
+} from './tiempoReal/eventos.js';
 import { firmarTicketTiempoReal } from './auth/tokens.js';
 import { withFilter } from 'graphql-subscriptions';
 import * as mercadoPago from './pagos/mercadopago.js';
@@ -618,10 +624,12 @@ export const resolvers = protegerResolvers({
     guardarProducto: async (_, { id: tid, datos }) => {
       const limpio = validarProducto(datos);
       const productoId = await guardarProductoCompleto(tid ?? null, limpio);
+      avisarInventarioActualizado();
       return findById('producto', mapProducto, productoId);
     },
     cambiarActivoProducto: async (_, { id: tid, activo }) => {
       const { rows } = await query('UPDATE producto SET activo = $1 WHERE id = $2 RETURNING *', [activo, tid]);
+      avisarInventarioActualizado();
       return rows[0] ? mapProducto(rows[0]) : null;
     },
     crearProducto: async (_, { datos }) => {
@@ -642,6 +650,7 @@ export const resolvers = protegerResolvers({
     },
     eliminarProducto: async (_, { id: tid }) => {
       const { rowCount } = await query('DELETE FROM producto WHERE id = $1', [tid]);
+      if (rowCount > 0) avisarInventarioActualizado();
       return rowCount > 0;
     },
 
@@ -693,6 +702,7 @@ export const resolvers = protegerResolvers({
         'INSERT INTO inventario (variante_id, cantidad, fecha_actualizacion) VALUES ($1, $2, $3) RETURNING *',
         [datos.varianteId, datos.cantidad, hoy()]
       );
+      avisarInventarioActualizado();
       return mapInventario(rows[0]);
     },
     actualizarInventario: async (_, { id: tid, cantidad }) => {
@@ -701,10 +711,12 @@ export const resolvers = protegerResolvers({
         'UPDATE inventario SET cantidad = $1, fecha_actualizacion = $2 WHERE id = $3 RETURNING *',
         [cantidad, hoy(), tid]
       );
+      if (rows[0]) avisarInventarioActualizado();
       return rows[0] ? mapInventario(rows[0]) : null;
     },
     eliminarInventario: async (_, { id: tid }) => {
       const { rowCount } = await query('DELETE FROM inventario WHERE id = $1', [tid]);
+      if (rowCount > 0) avisarInventarioActualizado();
       return rowCount > 0;
     },
 
@@ -1108,6 +1120,14 @@ export const resolvers = protegerResolvers({
         (aviso, _, ctx) => esStaff(ctx.usuario) || String(aviso.usuarioId) === String(ctx.usuario.id)
       ),
       resolve: (aviso) => findById('pedido', mapPedido, aviso.pedidoId),
+    },
+    inventarioActualizado: {
+      subscribe: (_, __, ctx) => {
+        if (!ctx.usuario) throw noAutenticado();
+        if (!esStaff(ctx.usuario)) throw sinPermiso();
+        return pubsub.asyncIterableIterator(EVENTOS.INVENTARIO_ACTUALIZADO);
+      },
+      resolve: () => true,
     },
   },
 });

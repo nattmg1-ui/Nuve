@@ -22,6 +22,7 @@ export const pubsub = new PubSub();
 export const EVENTOS = {
   PEDIDO_NUEVO: 'PEDIDO_NUEVO',
   PEDIDO_ACTUALIZADO: 'PEDIDO_ACTUALIZADO',
+  INVENTARIO_ACTUALIZADO: 'INVENTARIO_ACTUALIZADO',
 };
 
 /** Avisa que se creó un pedido (lo escuchan admin y operador). */
@@ -29,6 +30,17 @@ export function avisarPedidoNuevo(pedidoId, usuarioId) {
   pubsub
     .publish(EVENTOS.PEDIDO_NUEVO, { pedidoId: String(pedidoId), usuarioId: String(usuarioId) })
     .catch((e) => console.warn('[tiempo real] no se pudo avisar pedido nuevo', e.message));
+}
+
+/**
+ * Avisa que cambiaron existencias o productos (lo escuchan admin y operador).
+ * Las ventas y cancelaciones también cambian el stock, pero esas ya avisan con
+ * PEDIDO_NUEVO / PEDIDO_ACTUALIZADO.
+ */
+export function avisarInventarioActualizado() {
+  pubsub
+    .publish(EVENTOS.INVENTARIO_ACTUALIZADO, { cuando: new Date().toISOString() })
+    .catch((e) => console.warn('[tiempo real] no se pudo avisar inventario', e.message));
 }
 
 /**

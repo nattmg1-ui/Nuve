@@ -52,8 +52,8 @@ try {
   {error && <div class="aviso aviso--error" role="alert">{error}</div>}
 
   <h3 class="panel-subtitulo" id="pedidos">Pedidos</h3>
-  {/* Tiempo real: la tabla "tabla-pedidos" se actualiza sola con pedidos nuevos y cambios de estado */}
-  <PedidosEnVivo client:only="react" modo="staff" region="tabla-pedidos" />
+  {/* Tiempo real: pedidos e inventario se actualizan solos (ventas, cancelaciones, cambios de stock) */}
+  <PedidosEnVivo client:only="react" modo="staff" region={['tabla-pedidos', 'tabla-inventario']} />
   <div class="panel-tabla-wrap" id="tabla-pedidos">
     <table class="panel-tabla">
       <thead>
@@ -83,7 +83,7 @@ try {
   </div>
 
   <h3 class="panel-subtitulo" id="inventario">Inventario</h3>
-  <div class="panel-tabla-wrap">
+  <div class="panel-tabla-wrap" id="tabla-inventario">
     <table class="panel-tabla">
       <thead>
         <tr><th>Producto</th><th>Tono</th><th>SKU</th><th>Existencias</th></tr>
