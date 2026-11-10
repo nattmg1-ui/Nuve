@@ -19,12 +19,14 @@
     "astro": "^7.3.5",
     "chart.js": "^4.5.1",
     "graphql-ws": "^6.4.1",
+    "leaflet": "^1.9.4",
     "nanostores": "^1.5.4",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
+    "@types/leaflet": "^1.9.20",
     "@types/node": "^26.6.3",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",

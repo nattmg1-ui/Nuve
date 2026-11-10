@@ -1,0 +1,14 @@
+---
+// front/src/pages/admin/asistente.astro
+// Asistente de reportes (Módulo 8): el admin pregunta y la IA (Gemini) responde
+// usando solo los datos de ventas, inventario y pedidos de la base.
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import AsistenteReportes from '../../components/AsistenteReportes';
+---
+
+<AdminLayout
+  titulo="Asistente de reportes"
+  descripcion="Pregunta sobre ventas, inventario y pedidos. Responde solo con la información registrada en Nuvé."
+>
+  <AsistenteReportes client:load />
+</AdminLayout>

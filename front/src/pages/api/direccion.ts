@@ -13,6 +13,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const valor = String(cuerpo[campo] ?? '').trim();
     return valor === '' ? null : valor;
   };
+  const numero = (campo: string) => {
+    const valor = texto(campo);
+    const n = valor === null ? NaN : Number(valor);
+    return Number.isFinite(n) ? n : null;
+  };
   const datos = {
     calle: texto('calle'),
     numero: texto('numero'),
@@ -21,6 +26,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
     estado: texto('estado'),
     codigoPostal: texto('codigoPostal'),
     referencias: texto('referencias'),
+    // Ubicación elegida en el mapa (OpenStreetMap); si no se marcó, va vacía
+    latitud: numero('latitud'),
+    longitud: numero('longitud'),
   };
   try {
     const r = await gql<{ crearDireccion: unknown }>(MUTATION, { datos }, locals.accessToken);

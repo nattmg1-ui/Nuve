@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import './Panel.css';
 import './Admin.css';
+import SubirImagen from './SubirImagen';
 
 // Formulario para agregar o editar un producto completo: datos generales,
 // variantes (tono, color, precio, SKU, existencias) e imágenes por URL.
@@ -25,6 +26,7 @@ export interface ProductoEdicion {
     presentacion: string | null;
     precio: number;
     sku: string;
+    imagenUrl?: string | null;
     inventario: { cantidad: number } | null;
   }[];
   imagenes: { urlImagen: string; principal: boolean }[];
@@ -39,6 +41,8 @@ interface VarianteForm {
   precio: string;
   sku: string;
   existencias: string;
+  /** Foto de este tono (opcional). Vacía = se usa la imagen principal. */
+  imagenUrl: string;
 }
 
 interface ImagenForm {
@@ -65,6 +69,7 @@ const varianteVacia = (): VarianteForm => ({
   precio: '',
   sku: '',
   existencias: '0',
+  imagenUrl: '',
 });
 
 const imagenVacia = (principal = false): ImagenForm => ({ clave: nuevaClave(), urlImagen: '', principal });
@@ -88,6 +93,7 @@ export default function ProductoForm({ marcas, categorias, producto }: Props) {
           precio: String(v.precio),
           sku: v.sku,
           existencias: String(v.inventario?.cantidad ?? 0),
+          imagenUrl: v.imagenUrl ?? '',
         }))
       : [varianteVacia()]
   );
@@ -105,8 +111,17 @@ export default function ProductoForm({ marcas, categorias, producto }: Props) {
   const errorRef = useRef<HTMLDivElement>(null);
 
   // ---------- Variantes ----------
-  const cambiarVariante = (clave: number, campo: keyof VarianteForm, valor: string) =>
+  const cambiarVariante = (clave: number, campo: keyof VarianteForm, valor: string) => {
     setVariantes((lista) => lista.map((v) => (v.clave === clave ? { ...v, [campo]: valor } : v)));
+    // Si cambia la foto del tono, se vuelve a intentar cargar la vista previa
+    if (campo === 'imagenUrl') {
+      setRotas((prev) => {
+        const nuevo = new Set(prev);
+        nuevo.delete(clave);
+        return nuevo;
+      });
+    }
+  };
 
   const quitarVariante = (clave: number) => setVariantes((lista) => lista.filter((v) => v.clave !== clave));
 
@@ -142,6 +157,10 @@ export default function ProductoForm({ marcas, categorias, producto }: Props) {
     if (imagenes.some((img) => !esUrlValida(img.urlImagen))) {
       return mostrarError('Revisa las URL de las imágenes: deben empezar con https://');
     }
+    const fotoMala = variantes.findIndex((v) => v.imagenUrl.trim() && !esUrlValida(v.imagenUrl));
+    if (fotoMala >= 0) {
+      return mostrarError(`Variante ${fotoMala + 1}: la foto del tono debe ser una URL que empiece con https://`);
+    }
 
     setGuardando(true);
     try {
@@ -163,6 +182,7 @@ export default function ProductoForm({ marcas, categorias, producto }: Props) {
               precio: v.precio,
               sku: v.sku,
               existencias: v.existencias,
+              imagenUrl: v.imagenUrl.trim() || null,
             })),
             imagenes: imagenes.map((img) => ({ urlImagen: img.urlImagen.trim(), principal: img.principal })),
           },
@@ -269,8 +289,9 @@ export default function ProductoForm({ marcas, categorias, producto }: Props) {
       <section className="pf__seccion">
         <h3>Variantes</h3>
         <p className="pf__ayuda">
-          Cada tono o presentación con su propio precio, SKU y existencias. Si quitas una variante, deja de venderse pero
-          los pedidos anteriores la conservan.
+          Cada tono o presentación con su propio precio, SKU, existencias y, si quieres, su propia foto. Si un tono no
+          tiene foto, en la tienda se ve la imagen principal. Si quitas una variante, deja de venderse pero los pedidos
+          anteriores la conservan.
         </p>
 
         {variantes.map((v, i) => (
@@ -374,6 +395,43 @@ export default function ProductoForm({ marcas, categorias, producto }: Props) {
             >
               Quitar
             </button>
+
+            {/* Foto propia del tono (opcional) */}
+            <div className="pf__variante-foto">
+              {esUrlValida(v.imagenUrl) && !rotas.has(v.clave) ? (
+                <img
+                  className="pf__preview"
+                  src={v.imagenUrl.trim()}
+                  alt={`Foto del tono ${v.tono || i + 1}`}
+                  onError={() => marcarRota(v.clave)}
+                />
+              ) : (
+                <div className="pf__preview" style={{ background: /^#[0-9A-Fa-f]{6}$/.test(v.codigoHex) ? v.codigoHex : undefined }}>
+                  {esUrlValida(v.imagenUrl) ? 'No carga' : 'Sin foto'}
+                </div>
+              )}
+              <div className="pf__campo">
+                <label htmlFor={`pf-foto-${v.clave}`}>Foto de este tono (opcional)</label>
+                <input
+                  id={`pf-foto-${v.clave}`}
+                  className="input"
+                  type="url"
+                  value={v.imagenUrl}
+                  onChange={(e) => cambiarVariante(v.clave, 'imagenUrl', e.target.value)}
+                  maxLength={500}
+                  placeholder="https://... (si la dejas vacía se usa la imagen principal)"
+                />
+                <SubirImagen
+                  etiqueta={`Subir foto del tono ${v.tono || i + 1}`}
+                  onSubida={(url) => cambiarVariante(v.clave, 'imagenUrl', url)}
+                />
+                {rotas.has(v.clave) && (
+                  <span className="pf__ayuda" style={{ margin: 0, color: 'var(--color-warning)' }}>
+                    No se pudo cargar esta foto. Revisa que la URL sea de una imagen pública.
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         ))}
 
@@ -390,7 +448,8 @@ export default function ProductoForm({ marcas, categorias, producto }: Props) {
       <section className="pf__seccion">
         <h3>Imágenes</h3>
         <p className="pf__ayuda">
-          Pega la URL de cada imagen (debe empezar con https://). La principal es la que se ve en el catálogo.
+          Sube la foto desde tu computadora (se guarda en Cloudinary) o pega la URL de una imagen (debe empezar con
+          https://). La principal es la que se ve en el catálogo.
         </p>
 
         {imagenes.map((img, i) => {
@@ -420,6 +479,7 @@ export default function ProductoForm({ marcas, categorias, producto }: Props) {
                   maxLength={500}
                   placeholder="https://..."
                 />
+                <SubirImagen etiqueta={`Subir imagen ${i + 1}`} onSubida={(url) => cambiarUrl(img.clave, url)} />
                 {rotas.has(img.clave) && (
                   <span className="pf__ayuda" style={{ margin: 0, color: 'var(--color-warning)' }}>
                     No se pudo cargar esta imagen. Revisa que la URL sea de una imagen pública.

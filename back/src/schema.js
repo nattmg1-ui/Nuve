@@ -124,6 +124,9 @@ export const typeDefs = `#graphql
     precio: Float!
     sku: String!
     activo: Boolean!
+    """Foto de este tono. Si es null, se usa la imagen principal del producto."""
+    imagenUrl: String
+    """Existencias de este tono (cada tono tiene su propio stock)."""
     inventario: Inventario
   }
 
@@ -273,6 +276,8 @@ export const typeDefs = `#graphql
     precio: Float!
     sku: String!
     existencias: Int!
+    """URL de la foto de este tono (opcional)."""
+    imagenUrl: String
   }
 
   input ImagenCompletaInput {
@@ -481,8 +486,83 @@ export const typeDefs = `#graphql
     inventarioActualizado: Boolean!
   }
 
+  # ---------------- APIs externas ----------------
+
+  """Tipo de cambio de 1 MXN a otra moneda (ExchangeRate API)."""
+  type TasaCambio {
+    moneda: String!
+    tasa: Float!
+  }
+
+  type TiposDeCambio {
+    base: String!
+    """Fecha de la última actualización de la API (ISO). Null si nunca se pudo consultar."""
+    actualizado: String
+    fuente: String!
+    tasas: [TasaCambio!]!
+  }
+
+  """Datos para subir una imagen directo a Cloudinary desde el navegador (válida 1 hora)."""
+  type FirmaSubida {
+    cloudName: String!
+    apiKey: String!
+    timestamp: Int!
+    carpeta: String!
+    firma: String!
+    urlSubida: String!
+  }
+
+  """Qué APIs externas están configuradas en el .env del back (para el panel)."""
+  type EstadoIntegraciones {
+    mercadoPago: Boolean!
+    paypal: Boolean!
+    cloudinary: Boolean!
+    gemini: Boolean!
+  }
+
+  # ---------------- Asistentes con IA (API de Gemini) ----------------
+
+  enum RolMensaje {
+    USUARIO
+    ASISTENTE
+  }
+
+  """Mensaje anterior de la conversación (el navegador manda los últimos)."""
+  input MensajeChat {
+    rol: RolMensaje!
+    texto: String!
+  }
+
+  """Tono recomendado. Los datos salen de la base, no de la IA."""
+  type ProductoRecomendado {
+    productoId: ID!
+    varianteId: ID!
+    nombre: String!
+    marca: String!
+    tono: String
+    codigoHex: String
+    precio: Float!
+    imagenUrl: String
+    motivo: String
+  }
+
+  type RespuestaRecomendacion {
+    respuesta: String!
+    recomendaciones: [ProductoRecomendado!]!
+  }
+
+  type RespuestaAsistente {
+    respuesta: String!
+  }
+
   type Query {
     yo: Usuario
+
+    """Precios en otras monedas: tipos de cambio desde MXN (público)."""
+    tiposDeCambio: TiposDeCambio!
+
+    """Qué APIs externas están configuradas (solo ADMIN)."""
+    estadoIntegraciones: EstadoIntegraciones!
 
     """Resumen de ventas del panel (solo ADMIN)."""
     resumenVentas(periodo: PeriodoVentas!): ResumenVentas!
@@ -536,6 +616,15 @@ export const typeDefs = `#graphql
   # ------------------------------------------------------------------
 
   type Mutation {
+    """Firma para subir una imagen a Cloudinary (solo ADMIN)."""
+    firmaSubidaImagen: FirmaSubida!
+
+    """Asistente de compras: recomienda tonos del catálogo con existencias (clientes con sesión)."""
+    pedirRecomendacion(mensaje: String!, historial: [MensajeChat!]): RespuestaRecomendacion!
+
+    """Asistente de reportes: responde con los datos de ventas, inventario y pedidos (solo ADMIN)."""
+    preguntarReportes(mensaje: String!, historial: [MensajeChat!]): RespuestaAsistente!
+
     # --- Rol ---
     crearRol(datos: RolInput!): Rol!
     actualizarRol(id: ID!, datos: RolInput!): Rol

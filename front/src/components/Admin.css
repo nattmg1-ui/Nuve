@@ -177,6 +177,20 @@
   border-bottom: 1px solid var(--color-line);
 }
 
+/* Foto propia del tono: ocupa todo el ancho, debajo de los datos de la variante */
+.pf__variante-foto {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.pf__variante-foto .pf__preview {
+  width: 56px;
+  height: 56px;
+}
+
 .pf__color {
   display: flex;
   align-items: center;
@@ -453,4 +467,12 @@
 
 :root[data-tema="oscuro"] .kpi__cambio--baja {
   color: #F2A9A1;
+}
+/* Botón de subir foto (Cloudinary) debajo del campo de URL */
+.subir-imagen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
 }

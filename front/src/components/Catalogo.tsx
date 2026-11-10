@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Sidebar, type Categoria, type FiltrosCatalogo } from './Sidebar';
+import TarjetaProducto from './TarjetaProducto';
 import type { ProductoCatalogo } from '../lib/types';
 import './Main.css';
 import './Home.css';
@@ -74,20 +75,9 @@ export default function Catalogo({ categorias, productos, busqueda = '', hero, c
             </div>
           ) : (
             <div className="main-grid">
-              {visibles.map((producto) => {
-                const imagen = producto.imagenes.find((i) => i.principal) ?? producto.imagenes[0];
-                return (
-                  <article key={producto.id} className="producto-card">
-                    {imagen && <img src={imagen.urlImagen} alt={producto.nombre} className="producto-img" />}
-                    <p className="producto-marca">{producto.marca.nombre}</p>
-                    <h3 className="producto-nombre">{producto.nombre}</h3>
-                    <p className="producto-precio">Desde ${precioMinimo(producto).toFixed(2)}</p>
-                    <a className="btn btn-primary" href={`/producto/${producto.id}`}>
-                      Ver producto
-                    </a>
-                  </article>
-                );
-              })}
+              {visibles.map((producto) => (
+                <TarjetaProducto key={producto.id} producto={producto} tonoHex={filtros.tonoHex} />
+              ))}
             </div>
           )}
         </main>
@@ -97,3 +87,4 @@ export default function Catalogo({ categorias, productos, busqueda = '', hero, c
     </div>
   );
 }
+

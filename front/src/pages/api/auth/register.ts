@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { gql } from '../../../lib/graphql';
 import { guardarSesion } from '../../../lib/sesion';
+import { verificarTurnstile } from '../../../lib/turnstile';
 
 const MUTATION = `
   mutation ($datos: RegistroInput!) {
@@ -16,6 +17,10 @@ export const POST: APIRoute = async ({ request, cookies, redirect, url }) => {
   };
 
   try {
+    // API anti-bots (Cloudflare Turnstile)
+    const errorVerificacion = await verificarTurnstile(form, request);
+    if (errorVerificacion) throw new Error(errorVerificacion);
+
     const { registrar } = await gql<{ registrar: { accessToken: string; refreshToken: string } }>(MUTATION, { datos });
     guardarSesion(cookies, registrar, url.protocol === 'https:');
     return redirect('/', 303);

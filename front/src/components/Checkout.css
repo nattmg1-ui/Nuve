@@ -8,3 +8,79 @@
   font: var(--text-body-sm);
   color: var(--color-ink);
 }
+/* Buscador de dirección y mapa (OpenStreetMap) */
+.buscador-dir {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.buscador-dir__campo {
+  position: relative;
+}
+
+.buscador-dir__cargando {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font: var(--text-caption);
+  color: var(--color-slate);
+}
+
+.buscador-dir__lista {
+  position: absolute;
+  z-index: 1000;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md, 8px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.buscador-dir__lista li {
+  padding: 8px 12px;
+  cursor: pointer;
+  font: var(--text-body-sm);
+  color: var(--color-ink);
+}
+
+.buscador-dir__lista li:hover,
+.buscador-dir__lista li.activo {
+  background: var(--color-accent-soft, rgba(176, 96, 112, 0.12));
+}
+
+.buscador-dir__aviso,
+.buscador-dir__nota {
+  font: var(--text-caption);
+  color: var(--color-slate);
+  margin: 0;
+}
+
+.buscador-dir__mapa {
+  height: 240px;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--color-line);
+  z-index: 0;
+}
+
+/* Marcador del mapa: un pin con el color de la marca */
+.mapa-pin span {
+  display: block;
+  width: 22px;
+  height: 22px;
+  margin: 3px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: var(--color-accent, #b06070);
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}

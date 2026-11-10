@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { agregarAlCarrito } from '../lib/cart';
 import type { Imagen, Variante } from '../lib/types';
+import Precio from './Precio';
 import './Main.css';
 import './DetalleProducto.css';
 
@@ -14,16 +15,51 @@ interface Producto {
   imagenes: Imagen[];
 }
 
-export default function ProductoDetalle({ producto }: { producto: Producto }) {
-  const [varianteId, setVarianteId] = useState(producto.variantes[0]?.id ?? '');
+interface Props {
+  producto: Producto;
+  /** Tono que llega en la URL (?variante=ID), por ejemplo desde el catálogo. */
+  varianteInicial?: string | null;
+}
+
+/** Existencias del tono. Si el back no las manda, se trata como disponible. */
+const stockDe = (v?: Variante) => v?.inventario?.cantidad ?? null;
+
+export default function ProductoDetalle({ producto, varianteInicial }: Props) {
+  const inicial =
+    producto.variantes.find((v) => v.id === varianteInicial) ??
+    producto.variantes.find((v) => (stockDe(v) ?? 1) > 0) ??
+    producto.variantes[0];
+
+  const [varianteId, setVarianteId] = useState(inicial?.id ?? '');
   const [cantidad, setCantidad] = useState(1);
   const [agregado, setAgregado] = useState(false);
 
   const variante = producto.variantes.find((v) => v.id === varianteId) ?? producto.variantes[0];
-  const imagen = producto.imagenes.find((i) => i.principal) ?? producto.imagenes[0];
+  const principal = producto.imagenes.find((i) => i.principal) ?? producto.imagenes[0];
+  // Cada tono puede tener su propia foto; si no tiene, se usa la principal del producto
+  const imagenUrl = variante?.imagenUrl || principal?.urlImagen;
+
+  const stock = stockDe(variante);
+  const agotado = stock !== null && stock <= 0;
+
+  // La URL guarda el tono elegido: al recargar o compartir el enlace se abre el mismo tono
+  useEffect(() => {
+    if (!variante) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set('variante', variante.id);
+    window.history.replaceState(null, '', url);
+  }, [variante?.id]);
+
+  const elegirTono = (v: Variante) => {
+    setVarianteId(v.id);
+    setAgregado(false);
+    const s = stockDe(v);
+    if (s !== null && s > 0) setCantidad((c) => Math.min(c, s));
+    else setCantidad(1);
+  };
 
   const handleAgregar = () => {
-    if (!variante) return;
+    if (!variante || agotado) return;
     agregarAlCarrito(
       {
         varianteId: variante.id,
@@ -31,7 +67,7 @@ export default function ProductoDetalle({ producto }: { producto: Producto }) {
         nombre: producto.nombre,
         tono: variante.tono ?? undefined,
         precioUnitario: variante.precio,
-        imagenUrl: imagen?.urlImagen,
+        imagenUrl,
       },
       cantidad
     );
@@ -45,7 +81,14 @@ export default function ProductoDetalle({ producto }: { producto: Producto }) {
       </a>
 
       <div className="detalle-producto-grid">
-        {imagen && <img src={imagen.urlImagen} alt={producto.nombre} className="detalle-producto-img" />}
+        {imagenUrl && (
+          <img
+            key={imagenUrl}
+            src={imagenUrl}
+            alt={`${producto.nombre}${variante?.tono ? ` en tono ${variante.tono}` : ''}`}
+            className="detalle-producto-img"
+          />
+        )}
 
         <div>
           <p className="producto-marca">
@@ -54,28 +97,43 @@ export default function ProductoDetalle({ producto }: { producto: Producto }) {
           <h2 style={{ font: 'var(--text-h2)' }}>{producto.nombre}</h2>
           {producto.descripcion && <p style={{ color: 'var(--color-slate)' }}>{producto.descripcion}</p>}
 
-          <span className="detalle-producto-label">Tono</span>
+          <span className="detalle-producto-label">
+            Tono{producto.variantes.length > 1 ? ` (${producto.variantes.length} disponibles)` : ''}
+          </span>
           <div className="detalle-producto-swatches" role="radiogroup" aria-label="Elegir tono">
-            {producto.variantes.map((v) => (
-              <button
-                key={v.id}
-                type="button"
-                role="radio"
-                aria-checked={v.id === varianteId}
-                aria-label={v.tono ?? v.sku}
-                title={`${v.tono ?? v.sku} — $${v.precio.toFixed(2)}`}
-                onClick={() => {
-                  setVarianteId(v.id);
-                  setAgregado(false);
-                }}
-                className={`detalle-producto-swatch${v.id === varianteId ? ' detalle-producto-swatch--selected' : ''}`}
-                style={{ background: v.codigoHex ?? '#E5DAD1' }}
-              />
-            ))}
+            {producto.variantes.map((v) => {
+              const s = stockDe(v);
+              const sinStock = s !== null && s <= 0;
+              return (
+                <button
+                  key={v.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={v.id === varianteId}
+                  aria-label={`${v.tono ?? v.sku}${sinStock ? ' (agotado)' : ''}`}
+                  title={`${v.tono ?? v.sku} — $${v.precio.toFixed(2)}${sinStock ? ' — Agotado' : ''}`}
+                  onClick={() => elegirTono(v)}
+                  className={
+                    'detalle-producto-swatch' +
+                    (v.id === varianteId ? ' detalle-producto-swatch--selected' : '') +
+                    (sinStock ? ' detalle-producto-swatch--agotado' : '')
+                  }
+                  style={{ background: v.codigoHex ?? '#E5DAD1' }}
+                />
+              );
+            })}
           </div>
           {variante && (
             <p className="detalle-producto-tono-nombre">
-              {variante.tono ?? variante.sku} — ${variante.precio.toFixed(2)}
+              {variante.tono ?? variante.sku} — <Precio valor={variante.precio} />
+            </p>
+          )}
+          {stock !== null && (
+            <p
+              className={`detalle-producto-stock${agotado ? ' detalle-producto-stock--agotado' : stock <= 5 ? ' detalle-producto-stock--poco' : ''}`}
+              role="status"
+            >
+              {agotado ? 'Agotado en este tono' : stock <= 5 ? `Últimas ${stock} piezas en este tono` : `${stock} disponibles en este tono`}
             </p>
           )}
 
@@ -86,13 +144,18 @@ export default function ProductoDetalle({ producto }: { producto: Producto }) {
             id="cantidad"
             type="number"
             min={1}
+            max={stock !== null && stock > 0 ? stock : undefined}
             value={cantidad}
-            onChange={(e) => setCantidad(Math.max(1, Number(e.target.value)))}
+            disabled={agotado}
+            onChange={(e) => {
+              const n = Math.max(1, Number(e.target.value) || 1);
+              setCantidad(stock !== null && stock > 0 ? Math.min(n, stock) : n);
+            }}
             className="detalle-producto-input"
           />
 
-          <button className="btn btn-primary" onClick={handleAgregar} style={{ marginTop: 16 }}>
-            Agregar al carrito
+          <button className="btn btn-primary" onClick={handleAgregar} disabled={agotado} style={{ marginTop: 16 }}>
+            {agotado ? 'Agotado' : 'Agregar al carrito'}
           </button>
 
           {agregado && (

@@ -58,3 +58,29 @@
   color: var(--color-slate);
   margin: 8px 0 0;
 }
+/* Tono sin existencias: se puede ver, pero se marca con una línea diagonal */
+.detalle-producto-swatch--agotado {
+  position: relative;
+  opacity: 0.55;
+}
+.detalle-producto-swatch--agotado::after {
+  content: '';
+  position: absolute;
+  inset: 50% -2px auto -2px;
+  height: 2px;
+  background: var(--color-slate);
+  transform: rotate(-45deg);
+}
+
+/* Existencias del tono elegido */
+.detalle-producto-stock {
+  font: var(--text-body-sm);
+  color: var(--color-success);
+  margin: 4px 0 0;
+}
+.detalle-producto-stock--poco {
+  color: var(--color-warning, #B26A00);
+}
+.detalle-producto-stock--agotado {
+  color: var(--color-error, #B3261E);
+}

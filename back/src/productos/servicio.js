@@ -1,5 +1,5 @@
 // back/src/productos/servicio.js
-// Guarda un producto completo (datos + variantes + existencias + imágenes)
+// Guarda un producto completo (datos + variantes con su foto y existencias + imágenes)
 // en una sola transacción: o se guarda todo o no se guarda nada.
 //
 // Al editar:
@@ -55,16 +55,17 @@ export async function guardarProductoCompleto(productoId, d) {
       }
       if (varianteId) {
         const { rowCount } = await client.query(
-          `UPDATE variante_producto SET tono = $1, codigo_hex = $2, presentacion = $3, precio = $4, sku = $5, activo = TRUE
-           WHERE id = $6 AND producto_id = $7`,
-          [v.tono, v.codigoHex, v.presentacion, v.precio, v.sku, varianteId, id]
+          `UPDATE variante_producto SET tono = $1, codigo_hex = $2, presentacion = $3, precio = $4, sku = $5,
+             imagen_url = $6, activo = TRUE
+           WHERE id = $7 AND producto_id = $8`,
+          [v.tono, v.codigoHex, v.presentacion, v.precio, v.sku, v.imagenUrl, varianteId, id]
         );
         if (rowCount === 0) throw datosInvalidos(`La variante ${v.sku} no pertenece a este producto.`);
       } else {
         const { rows } = await client.query(
-          `INSERT INTO variante_producto (producto_id, tono, codigo_hex, presentacion, precio, sku, activo)
-           VALUES ($1, $2, $3, $4, $5, $6, TRUE) RETURNING id`,
-          [id, v.tono, v.codigoHex, v.presentacion, v.precio, v.sku]
+          `INSERT INTO variante_producto (producto_id, tono, codigo_hex, presentacion, precio, sku, imagen_url, activo)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE) RETURNING id`,
+          [id, v.tono, v.codigoHex, v.presentacion, v.precio, v.sku, v.imagenUrl]
         );
         varianteId = rows[0].id;
       }

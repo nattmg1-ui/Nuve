@@ -11,7 +11,7 @@ const QUERY = `
       id nombre descripcion
       marca { nombre }
       categoria { nombre }
-      variantes { id tono codigoHex precio sku }
+      variantes { id tono codigoHex precio sku imagenUrl inventario { cantidad } }
       imagenes { urlImagen principal }
     }
   }`;
@@ -26,7 +26,7 @@ try {
 if (!error && !producto) return new Response('Producto no encontrado', { status: 404 });
 ---
 
-<Layout titulo={`${producto?.nombre ?? 'Producto'} — Nuvé`}>
+<Layout asistente titulo={`${producto?.nombre ?? 'Producto'} — Nuvé`}>
   {error && <div class="main-error" role="alert"><p>No pudimos cargar el producto. {error}</p></div>}
-  {producto && <ProductoDetalle client:load producto={producto} />}
+  {producto && <ProductoDetalle client:load producto={producto} varianteInicial={Astro.url.searchParams.get('variante')} />}
 </Layout>

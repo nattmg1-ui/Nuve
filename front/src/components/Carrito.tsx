@@ -1,5 +1,6 @@
 import { useStore } from '@nanostores/react';
 import { $cart, $totalPrecio, actualizarCantidad, eliminarDelCarrito } from '../lib/cart';
+import Precio from './Precio';
 import './Main.css';
 import './Carrito.css';
 
@@ -26,7 +27,7 @@ export default function Carrito() {
                 <div>
                   <p className="producto-nombre">{item.nombre}</p>
                   {item.tono && <p className="producto-marca">{item.tono}</p>}
-                  <p className="producto-precio">${item.precioUnitario.toFixed(2)} c/u</p>
+                  <p className="producto-precio"><Precio valor={item.precioUnitario} sufijo="c/u" /></p>
                 </div>
                 <input
                   type="number"
@@ -36,7 +37,7 @@ export default function Carrito() {
                   onChange={(e) => actualizarCantidad(item.varianteId, Math.max(1, Number(e.target.value)))}
                   className="carrito-item-cantidad"
                 />
-                <p className="producto-precio">${(item.precioUnitario * item.cantidad).toFixed(2)}</p>
+                <p className="producto-precio"><Precio valor={item.precioUnitario * item.cantidad} /></p>
                 <button className="btn btn-secondary" onClick={() => eliminarDelCarrito(item.varianteId)}>
                   Quitar
                 </button>
@@ -45,7 +46,7 @@ export default function Carrito() {
           </ul>
 
           <div className="carrito-total">
-            <p style={{ font: 'var(--text-h3)' }}>Total: ${totalPrecio.toFixed(2)}</p>
+            <p style={{ font: 'var(--text-h3)' }}>Total: <Precio valor={totalPrecio} /></p>
             <a className="btn btn-primary" href="/checkout">
               Finalizar compra
             </a>

@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { gql } from '../../../lib/graphql';
 import { guardarSesion, rutaInternaSegura, rutaInicialPorRol } from '../../../lib/sesion';
+import { verificarTurnstile } from '../../../lib/turnstile';
 
 const MUTATION = `
   mutation ($correo: String!, $password: String!) {
@@ -16,6 +17,10 @@ export const POST: APIRoute = async ({ request, cookies, redirect, url }) => {
   const next = rutaInternaSegura(String(form.get('next') ?? ''));
 
   try {
+    // API anti-bots (Cloudflare Turnstile): se revisa antes de mandar la contraseña al backend
+    const errorVerificacion = await verificarTurnstile(form, request);
+    if (errorVerificacion) throw new Error(errorVerificacion);
+
     const { iniciarSesion } = await gql<{
       iniciarSesion: { accessToken: string; refreshToken: string; usuario: { rol: { nombre: string } } };
     }>(MUTATION, { correo, password });

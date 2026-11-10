@@ -1,0 +1,25 @@
+---
+// front/src/components/Turnstile.astro
+// Widget de Cloudflare Turnstile (anti-bots). Va dentro de un <form>: Cloudflare
+// agrega solo el campo oculto "cf-turnstile-response" con el token.
+// Si no hay llave configurada, no se muestra nada.
+import { turnstileSiteKey } from '../lib/turnstile';
+
+const siteKey = turnstileSiteKey();
+---
+
+{
+  siteKey && (
+    <>
+      <div class="cf-turnstile turnstile" data-sitekey={siteKey} data-language="es" data-theme="light" data-size="flexible" />
+      <script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer />
+    </>
+  )
+}
+
+<style>
+  .turnstile {
+    min-height: 65px;
+    margin: 4px 0;
+  }
+</style>

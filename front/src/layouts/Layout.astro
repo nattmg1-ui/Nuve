@@ -5,11 +5,15 @@ import '../components/Footer.css';
 import '../styles/responsive.css';
 import TopBar from '../components/TopBar.astro';
 import Footer from '../components/Footer.astro';
+import AsistenteRecomendaciones from '../components/AsistenteRecomendaciones';
 
 interface Props {
   titulo?: string;
+  /** Muestra el botón "Pide una recomendación" (Asesora Nuvé, API de Gemini). */
+  asistente?: boolean;
 }
-const { titulo = 'Nuvé — Belleza que te ilumina' } = Astro.props;
+const { titulo = 'Nuvé — Belleza que te ilumina', asistente = false } = Astro.props;
+const usuario = Astro.locals.usuario;
 
 // Tema visual elegido en "Mi perfil". Con "Sistema" (o sin sesión) no se pone
 // nada y manda el modo claro/oscuro del dispositivo (ver styles/theme.css).
@@ -31,5 +35,10 @@ const dataTema = tema === 'CLARO' ? 'claro' : tema === 'OSCURO' ? 'oscuro' : und
       <slot />
     </div>
     <Footer />
+    {
+      asistente && (
+        <AsistenteRecomendaciones client:idle conSesion={Boolean(usuario)} nombre={usuario?.nombre.split(' ')[0] ?? null} />
+      )
+    }
   </body>
 </html>

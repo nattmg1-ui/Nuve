@@ -30,6 +30,10 @@ import { firmarTicketTiempoReal } from './auth/tokens.js';
 import { withFilter } from 'graphql-subscriptions';
 import * as mercadoPago from './pagos/mercadopago.js';
 import * as paypal from './pagos/paypal.js';
+import { tiposDeCambio } from './integraciones/tipoCambio.js';
+import { firmaSubidaImagen, cloudinaryConfigurado } from './integraciones/cloudinary.js';
+import { geminiConfigurado } from './integraciones/gemini.js';
+import { pedirRecomendacion, preguntarReportes } from './asistente/servicio.js';
 
 const hoy = () => new Date().toISOString().slice(0, 10);
 
@@ -93,6 +97,7 @@ const mapVariante = (r) => ({
   precio: num(r.precio),
   sku: r.sku,
   activo: r.activo,
+  imagenUrl: r.imagen_url ?? null,
 });
 
 const mapImagen = (r) => ({
@@ -298,6 +303,15 @@ export const resolvers = protegerResolvers({
   // QUERY
   // ------------------------------------------------------------------
   Query: {
+    // ---- APIs externas ----
+    tiposDeCambio: () => tiposDeCambio(),
+    estadoIntegraciones: () => ({
+      mercadoPago: Boolean(PAGOS.mercadoPago.accessToken),
+      paypal: Boolean(PAGOS.paypal.clientId && PAGOS.paypal.secret),
+      cloudinary: cloudinaryConfigurado(),
+      gemini: geminiConfigurado(),
+    }),
+
     resumenVentas: (_, { periodo }) => resumenVentas(periodo),
     simulacionOxxo: () => PAGOS.oxxo.simular,
 
@@ -495,6 +509,13 @@ export const resolvers = protegerResolvers({
   // MUTATION
   // ------------------------------------------------------------------
   Mutation: {
+    // API externa de imágenes: Cloudinary
+    firmaSubidaImagen: () => firmaSubidaImagen(),
+
+    // API externa de IA: Gemini
+    pedirRecomendacion: (_, args, ctx) => pedirRecomendacion(ctx, args),
+    preguntarReportes: (_, args, ctx) => preguntarReportes(ctx, args),
+
     // --- Rol ---
     crearRol: async (_, { datos }) => {
       const { rows } = await query(

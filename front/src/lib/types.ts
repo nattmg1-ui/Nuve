@@ -22,6 +22,10 @@ export interface Variante {
   codigoHex: string | null;
   precio: number;
   sku: string;
+  /** Foto propia del tono. Si no tiene, se usa la imagen principal del producto. */
+  imagenUrl?: string | null;
+  /** Existencias de este tono (cada tono tiene su propio stock). */
+  inventario?: { cantidad: number } | null;
 }
 
 export interface ProductoCatalogo {

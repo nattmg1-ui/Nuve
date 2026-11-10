@@ -1,6 +1,7 @@
 ---
 import isotipoReversa from '../assets/logo/nuve_isotipo_reversa.svg';
 import CartBadge from './CartBadge';
+import SelectorMoneda from './SelectorMoneda';
 
 const usuario = Astro.locals.usuario;
 const rol = usuario?.rol.nombre;
@@ -19,6 +20,7 @@ const q = Astro.url.searchParams.get('q') ?? '';
     </a>
 
     <div class="topbar__fijas">
+      <SelectorMoneda client:only="react" />
       <a class="topbar__icon-btn" href="/carrito" aria-label="Carrito">
         <CartBadge client:only="react" />
       </a>

@@ -18,6 +18,7 @@ interface VarianteEntrada {
   precio: unknown;
   sku: string;
   existencias: unknown;
+  imagenUrl?: string | null;
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {
@@ -46,6 +47,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       precio,
       sku: String(v.sku ?? ''),
       existencias,
+      imagenUrl: v.imagenUrl ? String(v.imagenUrl).trim() || null : null,
     });
   }
 

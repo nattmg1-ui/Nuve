@@ -1,0 +1,20 @@
+{
+  "name": "nuve-mcp",
+  "version": "1.0.0",
+  "description": "Servidor MCP de Nuvé: permite que Claude Desktop consulte el catálogo, los pedidos y el inventario usando la API GraphQL de la tienda.",
+  "type": "module",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "start": "node index.js",
+    "inspector": "npx @modelcontextprotocol/inspector node index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "dotenv": "^16.4.5",
+    "zod": "^4.6.7"
+  }
+}

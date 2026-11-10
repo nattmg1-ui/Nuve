@@ -76,3 +76,49 @@
   padding: 16px;
   color: var(--color-ink);
 }
+/* Tonos en la tarjeta del catálogo: un círculo por variante */
+.producto-tonos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.producto-tono {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--color-line);
+  padding: 0;
+  cursor: pointer;
+  position: relative;
+}
+
+.producto-tono--selected {
+  box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-accent);
+}
+
+.producto-tono--agotado {
+  opacity: 0.5;
+}
+.producto-tono--agotado::after {
+  content: '';
+  position: absolute;
+  inset: 50% -2px auto -2px;
+  height: 1.5px;
+  background: var(--color-slate);
+  transform: rotate(-45deg);
+}
+
+.producto-tono-nombre {
+  font: var(--text-caption);
+  color: var(--color-slate);
+  margin: 0;
+}
+
+/* Precio aproximado en otra moneda (ExchangeRate API) */
+.precio-aprox {
+  font: var(--text-caption);
+  color: var(--color-slate);
+  font-weight: 400;
+  white-space: nowrap;
+}

@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useStore } from '@nanostores/react';
 import { $cart, $totalPrecio, vaciarCarrito } from '../lib/cart';
 import { ESTADOS_MX } from '../lib/estadosMx';
+import BuscadorDireccion from './BuscadorDireccion';
+import Precio from './Precio';
 import './Main.css';
 import './Checkout.css';
 import './Panel.css';
@@ -30,6 +32,7 @@ export default function Checkout({ direcciones: iniciales }: { direcciones: Dire
   const [error, setError] = useState<string | null>(null);
   const [errorDireccion, setErrorDireccion] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const formDireccion = useRef<HTMLFormElement>(null);
 
   async function llamar(url: string, cuerpo: unknown) {
     const respuesta = await fetch(url, {
@@ -99,7 +102,8 @@ export default function Checkout({ direcciones: iniciales }: { direcciones: Dire
             ))}
           </ul>
 
-          <p style={{ font: 'var(--text-h3)', marginTop: 16 }}>Total: ${totalPrecio.toFixed(2)}</p>
+          <p style={{ font: 'var(--text-h3)', marginTop: 16 }}>Total: <Precio valor={totalPrecio} sufijo="MXN" /></p>
+          <p style={{ font: 'var(--text-caption)', color: 'var(--color-slate)', margin: 0 }}>El cobro se hace en pesos mexicanos (MXN).</p>
 
           <h3 className="panel-subtitulo">Dirección de envío</h3>
 
@@ -129,12 +133,16 @@ export default function Checkout({ direcciones: iniciales }: { direcciones: Dire
 
           {mostrarForm && (
             <form
+              ref={formDireccion}
               className="panel-form auth-form"
               onSubmit={(e) => {
                 e.preventDefault();
                 void guardarDireccion(e.currentTarget);
               }}
             >
+              {/* API de ubicación (OpenStreetMap): busca la dirección y llena los campos */}
+              <BuscadorDireccion formulario={() => formDireccion.current} />
+
               <label htmlFor="dir-calle">Calle</label>
               <input
                 className="input"

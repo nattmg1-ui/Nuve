@@ -19,6 +19,7 @@ export const PERMISOS = {
   Query: {
     yo: AUTH,
     resumenVentas: [ADMIN],
+    estadoIntegraciones: [ADMIN],
     simulacionOxxo: [ADMIN],
     roles: [ADMIN],
     rol: [ADMIN],
@@ -48,6 +49,9 @@ export const PERMISOS = {
     crearMarca: [ADMIN], actualizarMarca: [ADMIN], eliminarMarca: [ADMIN],
     crearCategoria: [ADMIN], actualizarCategoria: [ADMIN], eliminarCategoria: [ADMIN],
     guardarProducto: [ADMIN], cambiarActivoProducto: [ADMIN],
+    firmaSubidaImagen: [ADMIN],
+    pedirRecomendacion: AUTH,
+    preguntarReportes: [ADMIN],
     crearProducto: [ADMIN], actualizarProducto: [ADMIN], eliminarProducto: [ADMIN],
     crearVarianteProducto: [ADMIN], actualizarVarianteProducto: [ADMIN], eliminarVarianteProducto: [ADMIN],
     crearImagenProducto: [ADMIN], actualizarImagenProducto: [ADMIN], eliminarImagenProducto: [ADMIN],

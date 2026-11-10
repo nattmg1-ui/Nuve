@@ -27,18 +27,18 @@ function textoOpcional(valor, campo, max) {
   return v;
 }
 
-function validarUrl(valor, numero) {
+function validarUrl(valor, numero, etiqueta = `Imagen ${numero}`) {
   const v = typeof valor === 'string' ? valor.trim() : '';
   let url;
   try {
     url = new URL(v);
   } catch {
-    throw datosInvalidos(`Imagen ${numero}: la URL no es válida.`);
+    throw datosInvalidos(`${etiqueta}: la URL no es válida.`);
   }
   if (url.protocol !== 'https:' && url.protocol !== 'http:') {
-    throw datosInvalidos(`Imagen ${numero}: la URL debe empezar con https://`);
+    throw datosInvalidos(`${etiqueta}: la URL debe empezar con https://`);
   }
-  if (v.length > 500) throw datosInvalidos(`Imagen ${numero}: la URL es demasiado larga.`);
+  if (v.length > 500) throw datosInvalidos(`${etiqueta}: la URL es demasiado larga.`);
   return v;
 }
 
@@ -85,6 +85,8 @@ export function validarProducto(datos) {
       precio: Math.round(precio * 100) / 100,
       sku,
       existencias,
+      // Foto propia del tono (opcional): si viene vacía se usa la imagen principal
+      imagenUrl: limpiar(v.imagenUrl) ? validarUrl(v.imagenUrl, n, `Variante ${n} (imagen del tono)`) : null,
     };
   });
 

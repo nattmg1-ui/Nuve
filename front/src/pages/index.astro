@@ -14,7 +14,7 @@ const QUERY = `
     productos {
       id nombre
       marca { nombre }
-      variantes { id tono codigoHex precio sku }
+      variantes { id tono codigoHex precio sku imagenUrl inventario { cantidad } }
       imagenes { urlImagen principal }
     }
   }`;
@@ -30,7 +30,7 @@ try {
 const busqueda = Astro.url.searchParams.get('q') ?? '';
 ---
 
-<Layout>
+<Layout asistente>
   {
     error || !datos ? (
       <div class="main-error" role="alert">
