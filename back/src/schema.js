@@ -88,6 +88,8 @@ export const typeDefs = `#graphql
     descripcion: String
     activo: Boolean!
     productos: [Producto!]!
+    """Productos de la marca, incluidos los desactivados (para el panel)."""
+    totalProductos: Int!
   }
 
   """Categoria que clasifica uno o varios productos."""
@@ -97,6 +99,8 @@ export const typeDefs = `#graphql
     descripcion: String
     activo: Boolean!
     productos: [Producto!]!
+    """Productos de la categoría, incluidos los desactivados (para el panel)."""
+    totalProductos: Int!
   }
 
   """Producto del catalogo (no vendible directamente: se vende por variante)."""
@@ -112,6 +116,30 @@ export const typeDefs = `#graphql
     imagenes: [ImagenProducto!]!
     favoritos: [Favorito!]!
     resenas: [Resena!]!
+    """Promedio de estrellas (1 a 5, un decimal). Null si no tiene reseñas."""
+    calificacionPromedio: Float
+    totalResenas: Int!
+    """Piezas vendidas en pedidos cobrados (para ordenar por popularidad)."""
+    vendidos: Int!
+    """true si está en los favoritos de quien consulta (false sin sesión)."""
+    esFavorito: Boolean!
+    """true si quien consulta compró y pagó el producto, y por eso puede opinar."""
+    puedoResenar: Boolean!
+    """Reseñas para mostrar en la tienda (sin correos; la propia primero)."""
+    resenasPublicas: [ResenaPublica!]!
+    """Productos de la misma categoría o marca, activos y con existencias."""
+    relacionados(limite: Int): [Producto!]!
+  }
+
+  """Reseña como se ve en la tienda: el autor aparece como "Valeria G."."""
+  type ResenaPublica {
+    id: ID!
+    autor: String!
+    calificacion: Int!
+    comentario: String
+    compraVerificada: Boolean!
+    fecha: String!
+    esMia: Boolean!
   }
 
   """Presentacion vendible de un producto (tono, tamano, precio, sku)."""
@@ -584,6 +612,8 @@ export const typeDefs = `#graphql
 
     """Catálogo. Los productos desactivados solo los ve el personal si pide incluirInactivos."""
     productos(limite: Int, desde: Int, incluirInactivos: Boolean): [Producto!]!
+    """Productos favoritos de quien consulta."""
+    misFavoritos: [Producto!]!
     producto(id: ID!): Producto
 
     variantesProducto: [VarianteProducto!]!
@@ -618,6 +648,12 @@ export const typeDefs = `#graphql
   type Mutation {
     """Firma para subir una imagen a Cloudinary (solo ADMIN)."""
     firmaSubidaImagen: FirmaSubida!
+
+    """Agrega o quita un producto de mis favoritos. Devuelve true si quedó como favorito."""
+    alternarFavorito(productoId: ID!): Boolean!
+    """Crea o actualiza mi reseña (solo si compré y pagué el producto)."""
+    escribirResena(productoId: ID!, calificacion: Int!, comentario: String): ResenaPublica!
+    eliminarMiResena(productoId: ID!): Boolean!
 
     """Asistente de compras: recomienda tonos del catálogo con existencias (clientes con sesión)."""
     pedirRecomendacion(mensaje: String!, historial: [MensajeChat!]): RespuestaRecomendacion!

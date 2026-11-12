@@ -9,3 +9,27 @@
   flex: 1;
   min-width: 0;
 }
+/* Controles del catálogo: conteo, quitar filtros y ordenar (Módulo 3) */
+.main-catalogo__controles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.main-catalogo__orden {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: var(--text-body-sm);
+  color: var(--color-slate);
+}
+
+.main-catalogo__orden .input {
+  padding: 6px 10px;
+}
+
+.main-catalogo__head {
+  flex-wrap: wrap;
+  gap: 12px;
+}

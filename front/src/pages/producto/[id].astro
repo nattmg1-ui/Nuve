@@ -1,10 +1,15 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import ProductoDetalle from '../../components/ProductoDetalle';
+import ResenasProducto from '../../components/ResenasProducto';
+import TarjetaProducto from '../../components/TarjetaProducto';
 import '../../components/Main.css';
 import '../../components/DetalleProducto.css';
+import '../../components/Resenas.css';
 import { gql } from '../../lib/graphql';
+import { CAMPOS_TARJETA, type ProductoCatalogo, type ResenaPublica } from '../../lib/types';
 
+// Se manda el token para saber si el producto está en mis favoritos y si puedo opinar
 const QUERY = `
   query Producto($id: ID!) {
     producto(id: $id) {
@@ -13,20 +18,57 @@ const QUERY = `
       categoria { nombre }
       variantes { id tono codigoHex precio sku imagenUrl inventario { cantidad } }
       imagenes { urlImagen principal }
+      calificacionPromedio totalResenas esFavorito puedoResenar
+      resenasPublicas { id autor calificacion comentario compraVerificada fecha esMia }
+      relacionados(limite: 4) { ${CAMPOS_TARJETA} }
     }
   }`;
 
-let producto = null;
+let producto: any = null;
 let error: string | null = null;
 try {
-  producto = (await gql<{ producto: any }>(QUERY, { id: Astro.params.id })).producto;
+  producto = (await gql<{ producto: any }>(QUERY, { id: Astro.params.id }, Astro.locals.accessToken)).producto;
 } catch (e) {
   error = e instanceof Error ? e.message : 'Error desconocido';
 }
 if (!error && !producto) return new Response('Producto no encontrado', { status: 404 });
+
+const conSesion = Boolean(Astro.locals.usuario);
+const relacionados: ProductoCatalogo[] = producto?.relacionados ?? [];
+const resenas: ResenaPublica[] = producto?.resenasPublicas ?? [];
 ---
 
 <Layout asistente titulo={`${producto?.nombre ?? 'Producto'} — Nuvé`}>
   {error && <div class="main-error" role="alert"><p>No pudimos cargar el producto. {error}</p></div>}
-  {producto && <ProductoDetalle client:load producto={producto} varianteInicial={Astro.url.searchParams.get('variante')} />}
+  {
+    producto && (
+      <>
+        <ProductoDetalle
+          client:load
+          producto={producto}
+          conSesion={conSesion}
+          varianteInicial={Astro.url.searchParams.get('variante')}
+        />
+
+        <ResenasProducto
+          client:visible
+          productoId={producto.id}
+          resenas={resenas}
+          puedoResenar={producto.puedoResenar}
+          conSesion={conSesion}
+        />
+
+        {relacionados.length > 0 && (
+          <section class="relacionados" aria-labelledby="relacionados-titulo">
+            <h2 id="relacionados-titulo">También te puede gustar</h2>
+            <div class="main-grid">
+              {relacionados.map((p) => (
+                <TarjetaProducto client:visible producto={p} />
+              ))}
+            </div>
+          </section>
+        )}
+      </>
+    )
+  }
 </Layout>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ProductoCatalogo } from '../lib/types';
 import Precio from './Precio';
+import Estrellas from './Estrellas';
 import './Main.css';
 
 const precioMinimo = (p: ProductoCatalogo) => Math.min(...p.variantes.map((v) => v.precio));
@@ -45,6 +46,7 @@ export default function TarjetaProducto({
       )}
       <p className="producto-marca">{producto.marca.nombre}</p>
       <h3 className="producto-nombre">{producto.nombre}</h3>
+      {producto.totalResenas ? <Estrellas valor={producto.calificacionPromedio ?? 0} total={producto.totalResenas} /> : null}
 
       {varios && (
         <div className="producto-tonos" role="radiogroup" aria-label={`Tonos de ${producto.nombre}`}>

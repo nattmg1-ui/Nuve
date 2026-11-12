@@ -1,0 +1,158 @@
+---
+// front/src/pages/admin/catalogo.astro
+// Módulo 9: categorías y marcas del catálogo. El admin puede crearlas, renombrarlas,
+// editar su descripción y desactivarlas. No se borran: una categoría o marca
+// desactivada deja de mostrarse en la tienda, pero sus productos y pedidos se conservan.
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { gql } from '../../lib/graphql';
+
+interface Elemento {
+  id: string;
+  nombre: string;
+  descripcion: string | null;
+  activo: boolean;
+  totalProductos: number;
+}
+
+let categorias: Elemento[] = [];
+let marcas: Elemento[] = [];
+let error: string | null = null;
+try {
+  const d = await gql<{ categorias: Elemento[]; marcas: Elemento[] }>(
+    `query {
+      categorias { id nombre descripcion activo totalProductos }
+      marcas { id nombre descripcion activo totalProductos }
+    }`,
+    {},
+    Astro.locals.accessToken
+  );
+  const porNombre = (a: Elemento, b: Elemento) => a.nombre.localeCompare(b.nombre, 'es');
+  categorias = d.categorias.sort(porNombre);
+  marcas = d.marcas.sort(porNombre);
+} catch (e) {
+  error = e instanceof Error ? e.message : 'Error desconocido';
+}
+
+const SECCIONES = [
+  { tipo: 'categoria', titulo: 'Categorías', singular: 'categoría', lista: categorias },
+  { tipo: 'marca', titulo: 'Marcas', singular: 'marca', lista: marcas },
+];
+---
+
+<AdminLayout
+  titulo="Categorías y marcas"
+  descripcion="Organizan el catálogo. Desactivar una la oculta de la tienda sin borrar sus productos ni pedidos."
+>
+  {error && <div class="aviso aviso--error" role="alert">{error}</div>}
+
+  {
+    SECCIONES.map((s) => (
+      <section class="catalogo-admin" aria-labelledby={`titulo-${s.tipo}`}>
+        <h3 class="panel-subtitulo" id={`titulo-${s.tipo}`}>
+          {s.titulo} <span class="admin-conteo">({s.lista.length})</span>
+        </h3>
+
+        <div class="panel-tabla-wrap">
+          <table class="panel-tabla">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Descripción</th>
+                <th>Productos</th>
+                <th>Activa</th>
+                <th><span class="sr-only">Guardar</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {s.lista.map((e) => {
+                const formId = `${s.tipo}-${e.id}`;
+                return (
+                  <tr>
+                    <td>
+                      <label class="sr-only" for={`${formId}-nombre`}>Nombre</label>
+                      <input class="input" id={`${formId}-nombre`} name="nombre" form={formId} value={e.nombre} required minlength="2" maxlength="120" />
+                    </td>
+                    <td>
+                      <label class="sr-only" for={`${formId}-desc`}>Descripción</label>
+                      <input class="input" id={`${formId}-desc`} name="descripcion" form={formId} value={e.descripcion ?? ''} maxlength="255" />
+                    </td>
+                    <td>{e.totalProductos}</td>
+                    <td>
+                      <label class="catalogo-admin__activo">
+                        <input type="checkbox" name="activo" form={formId} checked={e.activo} />
+                        <span class:list={['etiqueta', e.activo ? 'etiqueta--activo' : 'etiqueta--inactivo']}>
+                          {e.activo ? 'Activa' : 'Desactivada'}
+                        </span>
+                      </label>
+                    </td>
+                    <td>
+                      <form id={formId} method="post" action="/api/admin/catalogo-guardar">
+                        <input type="hidden" name="tipo" value={s.tipo} />
+                        <input type="hidden" name="id" value={e.id} />
+                        <button class="btn btn-secondary btn-sm" type="submit">Guardar</button>
+                      </form>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <form class="panel-form catalogo-admin__nueva" method="post" action="/api/admin/catalogo-guardar">
+          <input type="hidden" name="tipo" value={s.tipo} />
+          <div class="catalogo-admin__campo">
+            <label for={`nueva-${s.tipo}-nombre`}>Nueva {s.singular}</label>
+            <input class="input" id={`nueva-${s.tipo}-nombre`} name="nombre" required minlength="2" maxlength="120" placeholder="Nombre" />
+          </div>
+          <div class="catalogo-admin__campo">
+            <label for={`nueva-${s.tipo}-desc`}>Descripción (opcional)</label>
+            <input class="input" id={`nueva-${s.tipo}-desc`} name="descripcion" maxlength="255" />
+          </div>
+          <button class="btn btn-primary" type="submit">Agregar {s.singular}</button>
+        </form>
+      </section>
+    ))
+  }
+</AdminLayout>
+
+<style>
+  .catalogo-admin {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 36px;
+  }
+  .catalogo-admin .input {
+    width: 100%;
+    min-width: 140px;
+  }
+  .catalogo-admin__activo {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+  .catalogo-admin__nueva {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+    max-width: none;
+  }
+  .catalogo-admin__campo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1 1 220px;
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+</style>

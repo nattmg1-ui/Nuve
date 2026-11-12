@@ -6,20 +6,15 @@ import Hero from '../components/Hero.astro';
 import ContextBanner from '../components/ContextBanner.astro';
 import Catalogo from '../components/Catalogo';
 import { gql } from '../lib/graphql';
-import type { ProductoCatalogo } from '../lib/types';
+import { CAMPOS_TARJETA, type ProductoCatalogo } from '../lib/types';
 
 const QUERY = `
   query Inicio {
-    categorias { id nombre }
-    productos {
-      id nombre
-      marca { nombre }
-      variantes { id tono codigoHex precio sku imagenUrl inventario { cantidad } }
-      imagenes { urlImagen principal }
-    }
+    categorias { id nombre activo }
+    productos { ${CAMPOS_TARJETA} }
   }`;
 
-let datos: { categorias: { id: string; nombre: string }[]; productos: ProductoCatalogo[] } | null = null;
+let datos: { categorias: { id: string; nombre: string; activo: boolean }[]; productos: ProductoCatalogo[] } | null = null;
 let error: string | null = null;
 try {
   datos = await gql(QUERY);
@@ -28,6 +23,9 @@ try {
 }
 
 const busqueda = Astro.url.searchParams.get('q') ?? '';
+const categoriaInicial = Astro.url.searchParams.get('categoria');
+// En la tienda solo se ven las categorías activas (se administran en Admin > Categorías y marcas)
+const categorias = (datos?.categorias ?? []).filter((c) => c.activo);
 ---
 
 <Layout asistente>
@@ -37,7 +35,7 @@ const busqueda = Astro.url.searchParams.get('q') ?? '';
         <p>No pudimos cargar el catálogo. {error}</p>
       </div>
     ) : (
-      <Catalogo client:load categorias={datos.categorias} productos={datos.productos} busqueda={busqueda}>
+      <Catalogo client:load categorias={categorias} productos={datos.productos} busqueda={busqueda} categoriaInicial={categoriaInicial}>
         <Hero slot="hero" />
         <ContextBanner slot="contexto" />
       </Catalogo>

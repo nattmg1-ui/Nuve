@@ -1,0 +1,59 @@
+---
+// front/src/pages/mi-cuenta/favoritos.astro
+// Mi cuenta > Mis favoritos (Módulo 7): productos guardados con el botón de favoritos.
+import Layout from '../../layouts/Layout.astro';
+import Avisos from '../../components/Avisos.astro';
+import CuentaNav from '../../components/CuentaNav.astro';
+import TarjetaProducto from '../../components/TarjetaProducto';
+import '../../components/Panel.css';
+import '../../components/Cuenta.css';
+import '../../components/Main.css';
+import { gql } from '../../lib/graphql';
+import { CAMPOS_TARJETA, type ProductoCatalogo } from '../../lib/types';
+
+const usuario = Astro.locals.usuario!;
+let favoritos: ProductoCatalogo[] = [];
+let error: string | null = null;
+try {
+  favoritos = (
+    await gql<{ misFavoritos: ProductoCatalogo[] }>(`query { misFavoritos { ${CAMPOS_TARJETA} } }`, {}, Astro.locals.accessToken)
+  ).misFavoritos;
+} catch (e) {
+  error = e instanceof Error ? e.message : 'Error desconocido';
+}
+---
+
+<Layout titulo="Mis favoritos — Nuvé">
+  <div class="cuenta-encabezado">
+    <h2 class="panel-titulo">Mi cuenta</h2>
+    <p class="panel-intro">Hola, {usuario.nombre}.</p>
+  </div>
+  <CuentaNav />
+  <Avisos />
+
+  {error && <div class="aviso aviso--error" role="alert">{error}</div>}
+
+  {
+    !error && favoritos.length === 0 && (
+      <div class="cuenta-tarjeta">
+        <p>Todavía no guardas productos. En la página de cualquier producto pulsa "Agregar a favoritos".</p>
+        <a class="btn btn-primary" href="/">Ir al catálogo</a>
+      </div>
+    )
+  }
+
+  {
+    favoritos.length > 0 && (
+      <>
+        <p class="admin-conteo">
+          {favoritos.length} producto{favoritos.length === 1 ? '' : 's'} guardado{favoritos.length === 1 ? '' : 's'}
+        </p>
+        <div class="main-grid">
+          {favoritos.map((p) => (
+            <TarjetaProducto client:visible producto={p} />
+          ))}
+        </div>
+      </>
+    )
+  }
+</Layout>

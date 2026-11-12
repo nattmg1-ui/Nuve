@@ -31,9 +31,35 @@ export interface Variante {
 export interface ProductoCatalogo {
   id: string;
   nombre: string;
-  marca: { nombre: string };
+  marca: { id?: string; nombre: string };
+  categoria?: { id: string; nombre: string };
   variantes: Variante[];
   imagenes: Imagen[];
+  /** Promedio de estrellas (null si no tiene reseñas). */
+  calificacionPromedio?: number | null;
+  totalResenas?: number;
+  /** Piezas vendidas (para ordenar por popularidad). */
+  vendidos?: number;
+}
+
+/** Campos de producto que piden las tarjetas del catálogo (para reutilizar en varias consultas). */
+export const CAMPOS_TARJETA = `
+  id nombre
+  marca { id nombre }
+  categoria { id nombre }
+  calificacionPromedio totalResenas vendidos
+  variantes { id tono codigoHex precio sku imagenUrl inventario { cantidad } }
+  imagenes { urlImagen principal }
+`;
+
+export interface ResenaPublica {
+  id: string;
+  autor: string;
+  calificacion: number;
+  comentario: string | null;
+  compraVerificada: boolean;
+  fecha: string;
+  esMia: boolean;
 }
 
 export interface CartItem {

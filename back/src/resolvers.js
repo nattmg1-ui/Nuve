@@ -34,6 +34,8 @@ import { tiposDeCambio } from './integraciones/tipoCambio.js';
 import { firmaSubidaImagen, cloudinaryConfigurado } from './integraciones/cloudinary.js';
 import { geminiConfigurado } from './integraciones/gemini.js';
 import { pedirRecomendacion, preguntarReportes } from './asistente/servicio.js';
+import * as interaccion from './interaccion/servicio.js';
+import { validarCatalogo } from './catalogo/validacion.js';
 
 const hoy = () => new Date().toISOString().slice(0, 10);
 
@@ -330,6 +332,7 @@ export const resolvers = protegerResolvers({
     marca: (_, { id: tid }) => findById('marca', mapMarca, tid),
 
     categorias: () => findAll('categoria', mapCategoria),
+    misFavoritos: async (_, __, ctx) => (await interaccion.misFavoritos(ctx)).map(mapProducto),
     categoria: (_, { id: tid }) => findById('categoria', mapCategoria, tid),
 
     // La tienda solo muestra productos activos. El personal puede pedir también
@@ -421,6 +424,8 @@ export const resolvers = protegerResolvers({
   },
 
   Marca: {
+    totalProductos: async (marca) =>
+      (await query('SELECT COUNT(*)::int AS n FROM producto WHERE marca_id = $1', [marca.id])).rows[0].n,
     productos: async (marca) => {
       const { rows } = await query('SELECT * FROM producto WHERE marca_id = $1 AND activo = TRUE ORDER BY id', [marca.id]);
       return rows.map(mapProducto);
@@ -428,6 +433,8 @@ export const resolvers = protegerResolvers({
   },
 
   Categoria: {
+    totalProductos: async (categoria) =>
+      (await query('SELECT COUNT(*)::int AS n FROM producto WHERE categoria_id = $1', [categoria.id])).rows[0].n,
     productos: async (categoria) => {
       const { rows } = await query('SELECT * FROM producto WHERE categoria_id = $1 AND activo = TRUE ORDER BY id', [
         categoria.id,
@@ -451,6 +458,14 @@ export const resolvers = protegerResolvers({
     imagenes: (producto) => findWhere('imagen_producto', mapImagen, 'producto_id', producto.id),
     favoritos: (producto) => findWhere('favorito', mapFavorito, 'producto_id', producto.id),
     resenas: (producto) => findWhere('resena', mapResena, 'producto_id', producto.id),
+    // Módulos 4 y 7: calificación, popularidad, favoritos, reseñas y relacionados
+    calificacionPromedio: async (producto) => (await interaccion.estadisticasResenas(producto.id)).promedio,
+    totalResenas: async (producto) => (await interaccion.estadisticasResenas(producto.id)).total,
+    vendidos: (producto) => interaccion.piezasVendidas(producto.id),
+    esFavorito: (producto, _, ctx) => interaccion.esFavorito(ctx, producto.id),
+    puedoResenar: (producto, _, ctx) => interaccion.puedoResenar(ctx, producto.id),
+    resenasPublicas: (producto, _, ctx) => interaccion.resenasPublicas(ctx, producto.id),
+    relacionados: async (producto, { limite }) => (await interaccion.relacionados(producto, limite)).map(mapProducto),
   },
 
   VarianteProducto: {
@@ -511,6 +526,11 @@ export const resolvers = protegerResolvers({
   Mutation: {
     // API externa de imágenes: Cloudinary
     firmaSubidaImagen: () => firmaSubidaImagen(),
+
+    // Favoritos y reseñas (Módulo 7)
+    alternarFavorito: (_, { productoId }, ctx) => interaccion.alternarFavorito(ctx, productoId),
+    escribirResena: (_, args, ctx) => interaccion.escribirResena(ctx, args),
+    eliminarMiResena: (_, { productoId }, ctx) => interaccion.eliminarMiResena(ctx, productoId),
 
     // API externa de IA: Gemini
     pedirRecomendacion: (_, args, ctx) => pedirRecomendacion(ctx, args),
@@ -602,14 +622,16 @@ export const resolvers = protegerResolvers({
     },
 
     // --- Marca ---
-    crearMarca: async (_, { datos }) => {
+    crearMarca: async (_, { datos: entrada }) => {
+      const datos = await validarCatalogo('marca', entrada);
       const { rows } = await query(
         'INSERT INTO marca (nombre, descripcion, activo) VALUES ($1, $2, $3) RETURNING *',
         [datos.nombre, datos.descripcion ?? null, datos.activo ?? true]
       );
       return mapMarca(rows[0]);
     },
-    actualizarMarca: async (_, { id: tid, datos }) => {
+    actualizarMarca: async (_, { id: tid, datos: entrada }) => {
+      const datos = await validarCatalogo('marca', entrada, tid);
       const { rows } = await query(
         'UPDATE marca SET nombre = $1, descripcion = $2, activo = $3 WHERE id = $4 RETURNING *',
         [datos.nombre, datos.descripcion ?? null, datos.activo ?? true, tid]
@@ -622,14 +644,16 @@ export const resolvers = protegerResolvers({
     },
 
     // --- Categoria ---
-    crearCategoria: async (_, { datos }) => {
+    crearCategoria: async (_, { datos: entrada }) => {
+      const datos = await validarCatalogo('categoria', entrada);
       const { rows } = await query(
         'INSERT INTO categoria (nombre, descripcion, activo) VALUES ($1, $2, $3) RETURNING *',
         [datos.nombre, datos.descripcion ?? null, datos.activo ?? true]
       );
       return mapCategoria(rows[0]);
     },
-    actualizarCategoria: async (_, { id: tid, datos }) => {
+    actualizarCategoria: async (_, { id: tid, datos: entrada }) => {
+      const datos = await validarCatalogo('categoria', entrada, tid);
       const { rows } = await query(
         'UPDATE categoria SET nombre = $1, descripcion = $2, activo = $3 WHERE id = $4 RETURNING *',
         [datos.nombre, datos.descripcion ?? null, datos.activo ?? true, tid]

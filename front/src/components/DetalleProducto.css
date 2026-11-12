@@ -60,6 +60,13 @@
   color: var(--color-slate);
   margin: 8px 0 0;
 }
+/* Calificación debajo del nombre: lleva a las opiniones */
+.detalle-producto-calificacion {
+  display: inline-block;
+  text-decoration: none;
+  margin-bottom: 4px;
+}
+
 /* Tono sin existencias: se puede ver, pero se marca con una línea diagonal */
 .detalle-producto-swatch--agotado {
   position: relative;

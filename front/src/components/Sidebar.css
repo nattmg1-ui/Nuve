@@ -44,6 +44,7 @@
 
 .sidebar-list button:hover {
   background: var(--color-primary-selected-bg);
+  color: var(--color-accent);
 }
 
 .sidebar-list button.is-active {
@@ -74,7 +75,7 @@
 }
 
 .swatch.is-active {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-accent-text);
   outline-offset: 1px;
 }
 
@@ -135,4 +136,18 @@
 .sidebar-list a:hover {
   background: var(--color-primary-selected-bg);
   color: var(--color-accent);
+}
+
+/* Filtro de marca y de disponibilidad (Módulo 3) */
+.sidebar__select {
+  width: 100%;
+}
+
+.sidebar__check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: var(--text-body-sm);
+  color: var(--color-ink);
+  cursor: pointer;
 }

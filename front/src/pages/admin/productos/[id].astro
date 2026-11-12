@@ -10,8 +10,8 @@ let error: string | null = null;
 try {
   const d = await gql<{ marcas: typeof marcas; categorias: typeof categorias; producto: ProductoEdicion | null }>(
     `query ($id: ID!) {
-      marcas { id nombre }
-      categorias { id nombre }
+      marcas { id nombre activo }
+      categorias { id nombre activo }
       producto(id: $id) {
         id nombre descripcion activo
         categoria { id }
@@ -23,8 +23,9 @@ try {
     { id: Astro.params.id },
     Astro.locals.accessToken
   );
-  marcas = d.marcas;
-  categorias = d.categorias;
+  // Activas, más la que ya tiene el producto aunque esté desactivada
+  marcas = d.marcas.filter((m: any) => m.activo || m.id === d.producto?.marca.id);
+  categorias = d.categorias.filter((c: any) => c.activo || c.id === d.producto?.categoria.id);
   producto = d.producto;
 } catch (e) {
   error = e instanceof Error ? e.message : 'Error desconocido';

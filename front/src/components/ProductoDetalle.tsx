@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { agregarAlCarrito } from '../lib/cart';
 import type { Imagen, Variante } from '../lib/types';
 import Precio from './Precio';
+import Estrellas from './Estrellas';
+import BotonFavorito from './BotonFavorito';
 import './Main.css';
 import './DetalleProducto.css';
 
@@ -13,10 +15,15 @@ interface Producto {
   categoria: { nombre: string };
   variantes: Variante[];
   imagenes: Imagen[];
+  calificacionPromedio?: number | null;
+  totalResenas?: number;
+  esFavorito?: boolean;
 }
 
 interface Props {
   producto: Producto;
+  /** Hay sesión iniciada (para el botón de favoritos). */
+  conSesion?: boolean;
   /** Tono que llega en la URL (?variante=ID), por ejemplo desde el catálogo. */
   varianteInicial?: string | null;
 }
@@ -24,7 +31,7 @@ interface Props {
 /** Existencias del tono. Si el back no las manda, se trata como disponible. */
 const stockDe = (v?: Variante) => v?.inventario?.cantidad ?? null;
 
-export default function ProductoDetalle({ producto, varianteInicial }: Props) {
+export default function ProductoDetalle({ producto, varianteInicial, conSesion = false }: Props) {
   const inicial =
     producto.variantes.find((v) => v.id === varianteInicial) ??
     producto.variantes.find((v) => (stockDe(v) ?? 1) > 0) ??
@@ -95,6 +102,11 @@ export default function ProductoDetalle({ producto, varianteInicial }: Props) {
             {producto.marca.nombre} · {producto.categoria.nombre}
           </p>
           <h2 style={{ font: 'var(--text-h2)' }}>{producto.nombre}</h2>
+          {producto.totalResenas ? (
+            <a href="#resenas-titulo" className="detalle-producto-calificacion">
+              <Estrellas valor={producto.calificacionPromedio ?? 0} total={producto.totalResenas} />
+            </a>
+          ) : null}
           {producto.descripcion && <p style={{ color: 'var(--color-slate)' }}>{producto.descripcion}</p>}
 
           <span className="detalle-producto-label">
@@ -157,6 +169,8 @@ export default function ProductoDetalle({ producto, varianteInicial }: Props) {
           <button className="btn btn-primary" onClick={handleAgregar} disabled={agotado} style={{ marginTop: 16 }}>
             {agotado ? 'Agotado' : 'Agregar al carrito'}
           </button>
+
+          <BotonFavorito productoId={producto.id} inicial={Boolean(producto.esFavorito)} conSesion={conSesion} />
 
           {agregado && (
             <p role="status" style={{ marginTop: 12, color: 'var(--color-success)' }}>
