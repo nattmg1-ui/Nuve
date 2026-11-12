@@ -1,0 +1,62 @@
+/* front/src/styles/modo-oscuro.css
+   Ajustes del modo oscuro que theme.css no cubre.
+
+   En oscuro, la Superficie es Ciruela (#6E3B4C), el mismo color que el Acento.
+   Por eso todo lo que usaba Ciruela como texto, borde o anillo de selección
+   (precios, tono elegido, encabezado del asistente) se perdía sobre las tarjetas.
+   Aquí se definen tokens que cambian según el modo y unos pocos ajustes por componente.
+
+   Se aplica igual que theme.css:
+   - Tema SISTEMA: sigue al dispositivo, salvo que el usuario eligió CLARO.
+   - Tema OSCURO elegido en "Mi perfil": siempre oscuro. */
+
+:root {
+  /* Acento para TEXTO, bordes y anillos (en claro es Ciruela, igual que antes) */
+  --color-accent-text: var(--color-acento);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="claro"]) {
+    color-scheme: dark; /* campos, listas y barras de desplazamiento del navegador en oscuro */
+    --color-accent-text: #F3DED4; /* Oro Rosa Claro: se lee sobre Ciruela */
+    /* Colores semánticos aclarados para leerse sobre Ciruela (mismos valores que Panel.css) */
+    --color-success: #A9D3B3;
+    --color-warning: #E8C08A;
+    --color-error: #F2A9A1;
+  }
+
+  :root:not([data-tema="claro"]) .asistente__encabezado {
+    background: var(--color-fondo);
+    border-bottom: 1px solid var(--color-borde);
+  }
+
+  :root:not([data-tema="claro"]) .asistente__msg--usuario {
+    background: var(--color-primario-selected-bg);
+    color: #2B2320;
+  }
+
+  :root:not([data-tema="claro"]) .asesora-boton {
+    background: var(--color-primario);
+  }
+}
+
+:root[data-tema="oscuro"] {
+  --color-accent-text: #F3DED4;
+  --color-success: #A9D3B3;
+  --color-warning: #E8C08A;
+  --color-error: #F2A9A1;
+}
+
+:root[data-tema="oscuro"] .asistente__encabezado {
+  background: var(--color-fondo);
+  border-bottom: 1px solid var(--color-borde);
+}
+
+:root[data-tema="oscuro"] .asistente__msg--usuario {
+  background: var(--color-primario-selected-bg);
+  color: #2B2320;
+}
+
+:root[data-tema="oscuro"] .asesora-boton {
+  background: var(--color-primario);
+}

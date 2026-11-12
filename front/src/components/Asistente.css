@@ -95,7 +95,7 @@
 }
 
 .asistente__sugerencias button:hover {
-  border-color: var(--color-accent);
+  border-color: var(--color-accent-text);
 }
 
 .asistente__msg {
@@ -204,7 +204,7 @@
 }
 
 .asesora-rec:hover {
-  border-color: var(--color-accent);
+  border-color: var(--color-accent-text);
 }
 
 .asesora-rec img,

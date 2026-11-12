@@ -53,7 +53,7 @@
 
 .producto-precio {
   font: var(--text-body);
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   margin: 0;
 }
 
@@ -70,7 +70,7 @@
 }
 
 .main-error {
-  background: #fbeceb;
+  background: color-mix(in srgb, var(--color-error) 12%, var(--color-surface));
   border: 1px solid var(--color-error);
   border-radius: var(--radius-card);
   padding: 16px;
@@ -94,7 +94,7 @@
 }
 
 .producto-tono--selected {
-  box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-accent-text);
 }
 
 .producto-tono--agotado {

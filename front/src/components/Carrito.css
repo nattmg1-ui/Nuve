@@ -27,6 +27,8 @@
 
 .carrito-item-cantidad {
   width: 100%;
+  background: var(--color-surface);
+  color: var(--color-ink);
   border: 1px solid var(--color-line);
   border-radius: 8px;
   padding: 6px 8px;
